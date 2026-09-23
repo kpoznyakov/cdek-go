@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/sony/gobreaker/v2"
@@ -308,23 +309,83 @@ func (s *Service) ListDeliveryPoints(ctx context.Context, req *DeliveryPointsReq
 	result, err := s.breaker.Execute(func() (interface{}, error) {
 		// Строим path с query parameters
 		path := "/v2/deliverypoints"
-		queryParts := []string{}
+		query := url.Values{}
 
 		if req.CityCode != "" {
-			queryParts = append(queryParts, fmt.Sprintf("city_code=%s", req.CityCode))
+			query.Set("city_code", req.CityCode)
 		}
 		if req.Type != "" {
-			queryParts = append(queryParts, fmt.Sprintf("type=%s", req.Type))
+			query.Set("type", req.Type)
 		}
 		if req.Code != "" {
-			queryParts = append(queryParts, fmt.Sprintf("code=%s", req.Code))
+			query.Set("code", req.Code)
+		}
+		if req.PostalCode != nil {
+			query.Set("postal_code", *req.PostalCode)
+		}
+		if req.CountryCode != nil {
+			query.Set("country_code", *req.CountryCode)
+		}
+		if req.RegionCode != nil {
+			query.Set("region_code", strconv.Itoa(*req.RegionCode))
+		}
+		if req.HaveCashless != nil {
+			query.Set("have_cashless", strconv.FormatBool(*req.HaveCashless))
+		}
+		if req.HaveCash != nil {
+			query.Set("have_cash", strconv.FormatBool(*req.HaveCash))
+		}
+		if req.AllowedCod != nil {
+			query.Set("allowed_cod", strconv.FormatBool(*req.AllowedCod))
+		}
+		if req.IsDressingRoom != nil {
+			query.Set("is_dressing_room", strconv.FormatBool(*req.IsDressingRoom))
+		}
+		if req.WeightMax != nil {
+			query.Set("weight_max", strconv.FormatFloat(*req.WeightMax, 'f', -1, 64))
+		}
+		if req.WeightMin != nil {
+			query.Set("weight_min", strconv.FormatFloat(*req.WeightMin, 'f', -1, 64))
+		}
+		if req.Lang != nil {
+			query.Set("lang", *req.Lang)
+		}
+		if req.TakeOnly != nil {
+			query.Set("take_only", strconv.FormatBool(*req.TakeOnly))
+		}
+		if req.IsHandout != nil {
+			query.Set("is_handout", strconv.FormatBool(*req.IsHandout))
+		}
+		if req.IsReception != nil {
+			query.Set("is_reception", strconv.FormatBool(*req.IsReception))
+		}
+		if req.IsMarketplace != nil {
+			query.Set("is_marketplace", strconv.FormatBool(*req.IsMarketplace))
+		}
+		if req.IsLtl != nil {
+			query.Set("is_ltl", strconv.FormatBool(*req.IsLtl))
+		}
+		if req.LtlAcceptancePartners != nil {
+			query.Set("ltl_acceptance_partners", strconv.FormatBool(*req.LtlAcceptancePartners))
+		}
+		if req.LtlIssuancePartners != nil {
+			query.Set("ltl_issuance_partners", strconv.FormatBool(*req.LtlIssuancePartners))
+		}
+		if req.Fulfillment != nil {
+			query.Set("fulfillment", strconv.FormatBool(*req.Fulfillment))
+		}
+		if req.FiasGuid != nil {
+			query.Set("fias_guid", *req.FiasGuid)
+		}
+		if req.Size != nil {
+			query.Set("size", strconv.Itoa(*req.Size))
+		}
+		if req.Page != nil {
+			query.Set("page", strconv.Itoa(*req.Page))
 		}
 
-		if len(queryParts) > 0 {
-			path += "?" + queryParts[0]
-			for i := 1; i < len(queryParts); i++ {
-				path += "&" + queryParts[i]
-			}
+		if len(query) > 0 {
+			path += "?" + query.Encode()
 		}
 
 		// Используем AuthenticatedClient.Do для автоматической авторизации

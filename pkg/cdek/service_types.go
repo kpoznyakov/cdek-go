@@ -192,9 +192,30 @@ type TrackingInfo struct {
 
 // DeliveryPointsRequest - запрос на получение списка ПВЗ
 type DeliveryPointsRequest struct {
-	CityCode string // Код города (по КЛАДР)
-	Type     string // Тип пункта: "PVZ" (пункт выдачи), "POSTAMAT" (постамат)
-	Code     string // Код ПВЗ
+	CityCode              string   // Код города (по КЛАДР)
+	Type                  string   // Тип пункта: "PVZ" (пункт выдачи), "POSTAMAT" (постамат)
+	Code                  string   // Код ПВЗ
+	PostalCode            *string  // Почтовый индекс города, для которого необходим список офисов
+	CountryCode           *string  // Код страны в формате ISO_3166-1_alpha-2
+	RegionCode            *int     // Код региона СДЭК
+	HaveCashless          *bool    // Наличие терминала оплаты
+	HaveCash              *bool    // Есть прием наличных
+	AllowedCod            *bool    // Разрешен наложенный платеж
+	IsDressingRoom        *bool    // Наличие примерочной
+	WeightMax             *float64 // Максимальный вес в кг, который может принять офис
+	WeightMin             *float64 // Минимальный вес в кг, который принимает офис
+	Lang                  *string  // Локализация офиса
+	TakeOnly              *bool    // Является ли офис только пунктом выдачи
+	IsHandout             *bool    // Является пунктом выдачи
+	IsReception           *bool    // Есть ли в офисе приём заказов
+	IsMarketplace         *bool    // Офис для доставки "До маркетплейса"
+	IsLtl                 *bool    // Работает ли офис с LTL (сборный груз)
+	LtlAcceptancePartners *bool    // Принимает заказы LTL, которые будут доставляться партнерами
+	LtlIssuancePartners   *bool    // Выдает заказы LTL, которые были доставлены партнерами
+	Fulfillment           *bool    // Офис с зоной фулфилмента
+	FiasGuid              *string  // Код города ФИАС
+	Size                  *int     // Ограничение выборки результата (размер страницы)
+	Page                  *int     // Номер страницы выборки результата
 }
 
 // DeliveryPoint - пункт выдачи заказов
