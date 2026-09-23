@@ -316,6 +316,9 @@ func (s *Service) ListDeliveryPoints(ctx context.Context, req *DeliveryPointsReq
 		if req.Type != "" {
 			queryParts = append(queryParts, fmt.Sprintf("type=%s", req.Type))
 		}
+		if req.Code != "" {
+			queryParts = append(queryParts, fmt.Sprintf("code=%s", req.Code))
+		}
 
 		if len(queryParts) > 0 {
 			path += "?" + queryParts[0]
