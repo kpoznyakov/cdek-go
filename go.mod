@@ -1,4 +1,4 @@
-module github.com/metrica-pro/cdek-go
+module github.com/kpoznyakov/cdek-go
 
 go 1.26.4
 
