@@ -39,6 +39,44 @@ type TariffOption struct {
 	PeriodMax    int     // Максимальный срок доставки (дней)
 }
 
+// AvailableTariffsRequest - запрос на получение списка доступных тарифов по договору
+type AvailableTariffsRequest struct {
+	Lang *string // Язык вывода информации о тарифах: rus, eng, zho (по умолчанию - rus)
+}
+
+// AvailableTariff - тариф, доступный и актуальный по договору
+type AvailableTariff struct {
+	TariffName              string                               `json:"tariff_name"`                            // Название тарифа
+	DeliveryModes           []AvailableDeliveryMode              `json:"delivery_modes"`                         // Доступные режимы доставки для тарифа
+	OrderTypes              []int                                `json:"order_types"`                            // Доступные типы заказов (пустой список - доступны все)
+	PayerContragentType     []string                             `json:"payer_contragent_type"`                  // Доступные типы контрагентов-плательщиков
+	SenderContragentType    []string                             `json:"sender_contragent_type"`                 // Доступные типы контрагентов-отправителей
+	RecipientContragentType []string                             `json:"recipient_contragent_type"`              // Доступные типы контрагентов-получателей
+	WeightMin               float64                              `json:"weight_min"`                             // Минимальный вес отправления
+	WeightMax               float64                              `json:"weight_max"`                             // Максимальный вес отправления
+	WeightCalcMax           float64                              `json:"weight_calc_max"`                        // Максимальный расчетный вес
+	LengthMin               float64                              `json:"length_min"`                             // Минимальная длина упаковки
+	LengthMax               float64                              `json:"length_max"`                             // Максимальная длина упаковки
+	WidthMin                float64                              `json:"width_min"`                              // Минимальная ширина упаковки
+	WidthMax                float64                              `json:"width_max"`                              // Максимальная ширина упаковки
+	HeightMin               float64                              `json:"height_min"`                             // Минимальная высота упаковки
+	HeightMax               float64                              `json:"height_max"`                             // Максимальная высота упаковки
+	AdditionalOrderTypes    *AvailableTariffAdditionalOrderTypes `json:"additional_order_types_param,omitempty"` // Доп. типы заказа, применимые к тарифу
+}
+
+// AvailableTariffAdditionalOrderTypes - доп. типы заказа, применимые к тарифу
+type AvailableTariffAdditionalOrderTypes struct {
+	WithoutAdditionalOrderType bool  `json:"without_additional_order_type"` // Доступность тарифа для заказа без доп.типа
+	AdditionalOrderTypes       []int `json:"additional_order_types"`        // Список доступных доп. типов заказа для тарифа
+}
+
+// AvailableDeliveryMode - режим доставки, доступный для тарифа
+type AvailableDeliveryMode struct {
+	DeliveryMode     int    `json:"delivery_mode"`      // Код режима доставки: 1=дверь-дверь, 2=дверь-склад, 3=склад-дверь, 4=склад-склад
+	DeliveryModeName string `json:"delivery_mode_name"` // Название режима доставки
+	TariffCode       int    `json:"tariff_code"`        // Код тарифа
+}
+
 // ========================
 // Orders
 // ========================

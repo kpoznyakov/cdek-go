@@ -99,6 +99,130 @@ func (m *dtoMapper) fromCDEKCalculatorResponse(data []byte) (*CostResponse, erro
 	}, nil
 }
 
+// fromCDEKAvailableTariffs преобразует CalculatorAvailableTariffsResponseDto → []AvailableTariff
+func (m *dtoMapper) fromCDEKAvailableTariffs(data []byte) ([]AvailableTariff, error) {
+	var rawResp map[string]interface{}
+	if err := json.Unmarshal(data, &rawResp); err != nil {
+		return nil, fmt.Errorf("unmarshal available tariffs: %w", err)
+	}
+
+	tariffCodes, ok := rawResp["tariff_codes"].([]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	tariffs := make([]AvailableTariff, 0, len(tariffCodes))
+	for _, t := range tariffCodes {
+		tariffMap, ok := t.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		tariff := AvailableTariff{}
+
+		if name, ok := tariffMap["tariff_name"].(string); ok {
+			tariff.TariffName = name
+		}
+		if v, ok := tariffMap["weight_min"].(float64); ok {
+			tariff.WeightMin = v
+		}
+		if v, ok := tariffMap["weight_max"].(float64); ok {
+			tariff.WeightMax = v
+		}
+		if v, ok := tariffMap["weight_calc_max"].(float64); ok {
+			tariff.WeightCalcMax = v
+		}
+		if v, ok := tariffMap["length_min"].(float64); ok {
+			tariff.LengthMin = v
+		}
+		if v, ok := tariffMap["length_max"].(float64); ok {
+			tariff.LengthMax = v
+		}
+		if v, ok := tariffMap["width_min"].(float64); ok {
+			tariff.WidthMin = v
+		}
+		if v, ok := tariffMap["width_max"].(float64); ok {
+			tariff.WidthMax = v
+		}
+		if v, ok := tariffMap["height_min"].(float64); ok {
+			tariff.HeightMin = v
+		}
+		if v, ok := tariffMap["height_max"].(float64); ok {
+			tariff.HeightMax = v
+		}
+
+		tariff.OrderTypes = toIntSlice(tariffMap["order_types"])
+		tariff.PayerContragentType = toStringSlice(tariffMap["payer_contragent_type"])
+		tariff.SenderContragentType = toStringSlice(tariffMap["sender_contragent_type"])
+		tariff.RecipientContragentType = toStringSlice(tariffMap["recipient_contragent_type"])
+
+		if modes, ok := tariffMap["delivery_modes"].([]interface{}); ok {
+			tariff.DeliveryModes = make([]AvailableDeliveryMode, 0, len(modes))
+			for _, dm := range modes {
+				modeMap, ok := dm.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				mode := AvailableDeliveryMode{}
+				if v, ok := modeMap["delivery_mode"].(float64); ok {
+					mode.DeliveryMode = int(v)
+				}
+				if v, ok := modeMap["delivery_mode_name"].(string); ok {
+					mode.DeliveryModeName = v
+				}
+				if v, ok := modeMap["tariff_code"].(float64); ok {
+					mode.TariffCode = int(v)
+				}
+				tariff.DeliveryModes = append(tariff.DeliveryModes, mode)
+			}
+		}
+
+		if param, ok := tariffMap["additional_order_types_param"].(map[string]interface{}); ok {
+			additional := &AvailableTariffAdditionalOrderTypes{
+				AdditionalOrderTypes: toIntSlice(param["additional_order_types"]),
+			}
+			if v, ok := param["without_additional_order_type"].(bool); ok {
+				additional.WithoutAdditionalOrderType = v
+			}
+			tariff.AdditionalOrderTypes = additional
+		}
+
+		tariffs = append(tariffs, tariff)
+	}
+
+	return tariffs, nil
+}
+
+// toIntSlice преобразует []interface{} с числами в []int
+func toIntSlice(v interface{}) []int {
+	raw, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+	result := make([]int, 0, len(raw))
+	for _, item := range raw {
+		if n, ok := item.(float64); ok {
+			result = append(result, int(n))
+		}
+	}
+	return result
+}
+
+// toStringSlice преобразует []interface{} со строками в []string
+func toStringSlice(v interface{}) []string {
+	raw, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+	result := make([]string, 0, len(raw))
+	for _, item := range raw {
+		if s, ok := item.(string); ok {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
 // ========================
 // Orders
 // ========================

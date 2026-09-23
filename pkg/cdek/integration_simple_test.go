@@ -92,6 +92,30 @@ func TestSimple_ServiceCalculateCost(t *testing.T) {
 	}
 }
 
+// TestSimple_ServiceListAvailableTariffs тестирует получение списка доступных тарифов по договору
+func TestSimple_ServiceListAvailableTariffs(t *testing.T) {
+	client := getSimpleTestClient(t)
+	service := NewService(client, nil)
+	ctx := context.Background()
+
+	tariffs, err := service.ListAvailableTariffs(ctx, nil)
+	if err != nil {
+		t.Fatalf("ListAvailableTariffs() error = %v", err)
+	}
+
+	if len(tariffs) == 0 {
+		t.Error("Expected at least one available tariff")
+	}
+
+	t.Logf("✅ Service.ListAvailableTariffs: найдено %d тарифов", len(tariffs))
+	for i, tariff := range tariffs {
+		if i >= 3 {
+			break
+		}
+		t.Logf("  [%d] %s (код %d, режимов доставки: %d)", i+1, tariff.TariffName, tariff.TariffCode, len(tariff.DeliveryModes))
+	}
+}
+
 func TestSimple_HealthCheck(t *testing.T) {
 	client := getSimpleTestClient(t)
 	service := NewService(client, nil)
@@ -179,12 +203,12 @@ func TestSimple_Calculator(t *testing.T) {
 
 	serviceType := int32(1)
 	currency := int32(1)
-	fromCode := int32(44)   // Москва
-	toCode := int32(270)    // Новосибирск
-	weight := int32(1000)   // 1 кг
-	length := int32(20)     // см
-	width := int32(15)      // см
-	height := int32(10)     // см
+	fromCode := int32(44) // Москва
+	toCode := int32(270)  // Новосибирск
+	weight := int32(1000) // 1 кг
+	length := int32(20)   // см
+	width := int32(15)    // см
+	height := int32(10)   // см
 
 	request := CalculatorTariffListRequestDto{
 		Type:     &serviceType,
@@ -245,8 +269,8 @@ func createTestOrder(t *testing.T, service *Service, ctx context.Context) *Order
 	t.Helper()
 
 	// Используем самый дешевый тариф для теста
-	fromCode := int32(44)  // Москва
-	toCode := int32(270)   // Новосибирск
+	fromCode := int32(44) // Москва
+	toCode := int32(270)  // Новосибирск
 
 	toAddress := "ул. Ленина, д. 1"
 
@@ -303,8 +327,8 @@ func TestSimple_ServiceCreateOrder(t *testing.T) {
 	service := NewService(client, nil)
 	ctx := context.Background()
 
-	fromCode := int32(44)  // Москва
-	toCode := int32(270)   // Новосибирск
+	fromCode := int32(44) // Москва
+	toCode := int32(270)  // Новосибирск
 	toAddress := "ул. Ленина, д. 1, кв. 1"
 
 	req := &OrderRequest{

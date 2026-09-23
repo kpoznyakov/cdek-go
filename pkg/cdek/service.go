@@ -169,6 +169,63 @@ func (s *Service) CalculateCost(ctx context.Context, req *CostRequest) (*CostRes
 	return costResp, nil
 }
 
+// ListAvailableTariffs возвращает список всех доступных и актуальных тарифов по договору
+func (s *Service) ListAvailableTariffs(ctx context.Context, req *AvailableTariffsRequest) ([]AvailableTariff, error) {
+	s.logger.Info("listing available tariffs")
+
+	// Выполнение через Circuit Breaker
+	result, err := s.breaker.Execute(func() (interface{}, error) {
+		// Получение токена авторизации
+		token, err := s.client.GetToken(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("get token: %w", err)
+		}
+
+		// Формируем параметры запроса
+		params := &AvailableTariffsParams{}
+		if req != nil && req.Lang != nil {
+			params.XUserLang = *req.Lang
+		}
+
+		// Вызов автогенерированного API метода
+		resp, err := s.client.ClientWithResponses().AvailableTariffsWithResponse(
+			ctx,
+			nil,
+			func(_ context.Context, r *http.Request) error {
+				r.Header.Set("Authorization", "Bearer "+token)
+				return nil
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("api call: %w", err)
+		}
+
+		bodyBytes := resp.Body
+
+		// Проверка HTTP статуса
+		if resp.StatusCode() >= 400 {
+			httpResp := &http.Response{
+				StatusCode: resp.StatusCode(),
+				Body:       io.NopCloser(bytes.NewReader(bodyBytes)),
+			}
+			return nil, wrapHTTPError(httpResp)
+		}
+
+		// Преобразование CDEK Response → []AvailableTariff
+		return s.mapper.fromCDEKAvailableTariffs(bodyBytes)
+	})
+
+	if err != nil {
+		s.logger.Error("list available tariffs failed", "err", err)
+		return nil, err
+	}
+
+	tariffs := result.([]AvailableTariff)
+	s.logger.Info("list available tariffs success", "count", len(tariffs))
+
+	return tariffs, nil
+}
+
 // CreateOrder создает заказ на доставку в CDEK
 func (s *Service) CreateOrder(ctx context.Context, req *OrderRequest) (*OrderResponse, error) {
 	s.logger.Info("creating order", "type", req.Type, "tariff_code", req.TariffCode, "packages", len(req.Packages))

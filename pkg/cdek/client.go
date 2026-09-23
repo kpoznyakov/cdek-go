@@ -4,150 +4,22 @@
 package cdek
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
-	Oauth2Scopes oauth2ContextKey = "oauth2.Scopes"
+	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
-
-// Defines values for AlertDtoType.
-const (
-	AlertDtoTypeDanger  AlertDtoType = "danger"
-	AlertDtoTypeInfo    AlertDtoType = "info"
-	AlertDtoTypeSuccess AlertDtoType = "success"
-	AlertDtoTypeWarning AlertDtoType = "warning"
-)
-
-// Valid indicates whether the value is a known member of the AlertDtoType enum.
-func (e AlertDtoType) Valid() bool {
-	switch e {
-	case AlertDtoTypeDanger:
-		return true
-	case AlertDtoTypeInfo:
-		return true
-	case AlertDtoTypeSuccess:
-		return true
-	case AlertDtoTypeWarning:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for RequestInfoDtoState.
-const (
-	RequestInfoDtoStateACCEPTED   RequestInfoDtoState = "ACCEPTED"
-	RequestInfoDtoStateINVALID    RequestInfoDtoState = "INVALID"
-	RequestInfoDtoStateSUCCESSFUL RequestInfoDtoState = "SUCCESSFUL"
-)
-
-// Valid indicates whether the value is a known member of the RequestInfoDtoState enum.
-func (e RequestInfoDtoState) Valid() bool {
-	switch e {
-	case RequestInfoDtoStateACCEPTED:
-		return true
-	case RequestInfoDtoStateINVALID:
-		return true
-	case RequestInfoDtoStateSUCCESSFUL:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for RequestInfoDtoType.
-const (
-	RequestInfoDtoTypeAUTH   RequestInfoDtoType = "AUTH"
-	RequestInfoDtoTypeCREATE RequestInfoDtoType = "CREATE"
-	RequestInfoDtoTypeDELETE RequestInfoDtoType = "DELETE"
-	RequestInfoDtoTypeGET    RequestInfoDtoType = "GET"
-	RequestInfoDtoTypeUPDATE RequestInfoDtoType = "UPDATE"
-)
-
-// Valid indicates whether the value is a known member of the RequestInfoDtoType enum.
-func (e RequestInfoDtoType) Valid() bool {
-	switch e {
-	case RequestInfoDtoTypeAUTH:
-		return true
-	case RequestInfoDtoTypeCREATE:
-		return true
-	case RequestInfoDtoTypeDELETE:
-		return true
-	case RequestInfoDtoTypeGET:
-		return true
-	case RequestInfoDtoTypeUPDATE:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for WebhookDtoType.
-const (
-	WebhookDtoTypeACCOMPANYINGWAYBILL WebhookDtoType = "ACCOMPANYING_WAYBILL"
-	WebhookDtoTypeCOURIERINFO         WebhookDtoType = "COURIER_INFO"
-	WebhookDtoTypeDELIVAGREEMENT      WebhookDtoType = "DELIV_AGREEMENT"
-	WebhookDtoTypeDELIVPROBLEM        WebhookDtoType = "DELIV_PROBLEM"
-	WebhookDtoTypeOFFICEAVAILABILITY  WebhookDtoType = "OFFICE_AVAILABILITY"
-	WebhookDtoTypeORDERMODIFIED       WebhookDtoType = "ORDER_MODIFIED"
-	WebhookDtoTypeORDERSTATUS         WebhookDtoType = "ORDER_STATUS"
-	WebhookDtoTypePREALERTCLOSED      WebhookDtoType = "PREALERT_CLOSED"
-	WebhookDtoTypePRINTFORM           WebhookDtoType = "PRINT_FORM"
-	WebhookDtoTypeRECEIPT             WebhookDtoType = "RECEIPT"
-)
-
-// Valid indicates whether the value is a known member of the WebhookDtoType enum.
-func (e WebhookDtoType) Valid() bool {
-	switch e {
-	case WebhookDtoTypeACCOMPANYINGWAYBILL:
-		return true
-	case WebhookDtoTypeCOURIERINFO:
-		return true
-	case WebhookDtoTypeDELIVAGREEMENT:
-		return true
-	case WebhookDtoTypeDELIVPROBLEM:
-		return true
-	case WebhookDtoTypeOFFICEAVAILABILITY:
-		return true
-	case WebhookDtoTypeORDERMODIFIED:
-		return true
-	case WebhookDtoTypeORDERSTATUS:
-		return true
-	case WebhookDtoTypePREALERTCLOSED:
-		return true
-	case WebhookDtoTypePRINTFORM:
-		return true
-	case WebhookDtoTypeRECEIPT:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetOAuthTokenFormdataBodyGrantType.
-const (
-	GetOAuthTokenFormdataBodyGrantTypeClientCredentials GetOAuthTokenFormdataBodyGrantType = "client_credentials"
-)
-
-// Valid indicates whether the value is a known member of the GetOAuthTokenFormdataBodyGrantType enum.
-func (e GetOAuthTokenFormdataBodyGrantType) Valid() bool {
-	switch e {
-	case GetOAuthTokenFormdataBodyGrantTypeClientCredentials:
-		return true
-	default:
-		return false
-	}
-}
 
 // AccompanyingWaybillDto Информация для сопроводительной накладной
 type AccompanyingWaybillDto struct {
@@ -170,8 +42,8 @@ type AccompanyingWaybillDto struct {
 	VehicleNumbers interface{} `json:"vehicle_numbers,omitempty"`
 }
 
-// AdditionalServiceDto Дополнительная услуга
-type AdditionalServiceDto struct {
+// AdditionalServiceRequestDto Дополнительная услуга
+type AdditionalServiceRequestDto struct {
 	// Code Тип дополнительной услуги
 	Code interface{} `json:"code,omitempty"`
 
@@ -197,52 +69,94 @@ type AdditionalServiceDto struct {
 	VatSum interface{} `json:"vat_sum,omitempty"`
 }
 
+// AdditionalServiceResponseDto Дополнительная услуга
+type AdditionalServiceResponseDto struct {
+	// Code Тип дополнительной услуги
+	Code interface{} `json:"code,omitempty"`
+
+	// DiscountPercent Процент скидки
+	DiscountPercent interface{} `json:"discount_percent,omitempty"`
+
+	// DiscountSum Сумма скидки
+	DiscountSum interface{} `json:"discount_sum,omitempty"`
+
+	// Parameter Параметр дополнительной услуги<br> 1. Количество для услуг PACKAGE_1, PACKAGE_A_2_LIGHT_EXPRESS, PACKAGE_A_3_LIGHT_EXPRESS, PACKAGE_A_4_LIGHT_EXPRESS, PACKAGE_A_5_LIGHT_EXPRESS, CARTON_BOX_XS, CARTON_BOX_S, CARTON_BOX_M, CARTON_BOX_2KG, CARTON_BOX_3KG, CARTON_BOX_5KG, CARTON_BOX_10KG, CARTON_BOX_XL_18_KILOS, CARTON_BOX_20KG, CARTON_BOX_30KG, CARTON_FILLER, XL_BOX_INNER_CRATE, 20_KG_BOX_INNER_CRATE, 30_KG_BOX_INNER_CRATE (для всех типов заказа)<br> 2. Объявленная стоимость заказа для услуги INSURANCE<br> 3. Длина для услуг BUBBLE_WRAP, WASTE_PAPER (для всех типов заказа)<br> 4. Номер телефона для услуги SMS<br> 5. Код фотопроекта для услуги PHOTO_OF_DOCUMENTS (добавление услуги доступно только при создании заказа)
+	Parameter interface{} `json:"parameter,omitempty"`
+
+	// Sum Стоимость услуги
+	Sum interface{} `json:"sum,omitempty"`
+
+	// TotalSum Стоимость услуги с НДС и скидкой
+	TotalSum interface{} `json:"total_sum,omitempty"`
+
+	// VatRate Процент НДС
+	VatRate interface{} `json:"vat_rate,omitempty"`
+
+	// VatSum Сумма НДС
+	VatSum interface{} `json:"vat_sum,omitempty"`
+}
+
 // AlertDto Ошибка при обработке запроса контроллером
 type AlertDto struct {
 	// ErrorCode Технический код
-	ErrorCode *string `json:"errorCode,omitempty"`
+	ErrorCode interface{} `json:"errorCode,omitempty"`
 
 	// Msg Текст ошибки
-	Msg *string `json:"msg,omitempty"`
+	Msg interface{} `json:"msg,omitempty"`
 
 	// Params Дополнительные параметры
-	Params *[]AlertParamDto `json:"params,omitempty"`
+	Params interface{} `json:"params,omitempty"`
 
 	// Source Имя приложения, которое является источником
-	Source *string `json:"source,omitempty"`
+	Source interface{} `json:"source,omitempty"`
 
 	// Type Тип, который используется на фронте для выбора цвета фона, на котором отображается текст
-	Type *AlertDtoType `json:"type,omitempty"`
+	Type interface{} `json:"type,omitempty"`
 }
-
-// AlertDtoType Тип, который используется на фронте для выбора цвета фона, на котором отображается текст
-type AlertDtoType string
 
 // AlertParamDto Дополнительный параметр ошибки
 type AlertParamDto struct {
 	// Field Имя параметра
-	Field *string `json:"field,omitempty"`
+	Field interface{} `json:"field,omitempty"`
 
 	// Value Значение параметра
-	Value *string `json:"value,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
-// AuthResponseDto Транспорт ответа на получение токена авторизации (авторизацию)
+// AsyncRequestsReportDto defines model for AsyncRequestsReportDto.
+type AsyncRequestsReportDto struct {
+	OrdersCreated            interface{} `json:"ordersCreated,omitempty"`
+	OrdersRequested          interface{} `json:"ordersRequested,omitempty"`
+	RequestsNotOk            interface{} `json:"requestsNotOk,omitempty"`
+	RequestsNotOkPerOrderAvg interface{} `json:"requestsNotOkPerOrderAvg,omitempty"`
+	RequestsNotOkPerOrderMax interface{} `json:"requestsNotOkPerOrderMax,omitempty"`
+	RequestsNotOkPerOrderMin interface{} `json:"requestsNotOkPerOrderMin,omitempty"`
+	RequestsOk               interface{} `json:"requestsOk,omitempty"`
+	RequestsOkPerOrderAvg    interface{} `json:"requestsOkPerOrderAvg,omitempty"`
+	RequestsOkPerOrderMax    interface{} `json:"requestsOkPerOrderMax,omitempty"`
+	RequestsOkPerOrderMin    interface{} `json:"requestsOkPerOrderMin,omitempty"`
+	RequestsPerOrderAvg      interface{} `json:"requestsPerOrderAvg,omitempty"`
+	RequestsPerOrderMax      interface{} `json:"requestsPerOrderMax,omitempty"`
+	RequestsPerOrderMin      interface{} `json:"requestsPerOrderMin,omitempty"`
+	RequestsTotal            interface{} `json:"requestsTotal,omitempty"`
+}
+
+// AuthResponseDto 200 OK
 type AuthResponseDto struct {
 	// AccessToken JWT-токен
-	AccessToken string `json:"access_token"`
+	AccessToken *openapi_types.UUID `json:"access_token,omitempty"`
 
 	// ExpiresIn Срок действия токена (по умолчанию 3600 секунд)
-	ExpiresIn int `json:"expires_in"`
+	ExpiresIn *int `json:"expires_in,omitempty"`
 
 	// Jti Уникальный идентификатор токена
-	Jti string `json:"jti"`
+	Jti *string `json:"jti,omitempty"`
 
 	// Scope Область действия токена (доступ к объектам и операциям над ними)
-	Scope string `json:"scope"`
+	Scope *string `json:"scope,omitempty"`
 
 	// TokenType Тип токена. Всегда принимает значение bearer
-	TokenType string `json:"token_type"`
+	TokenType *string `json:"token_type,omitempty"`
 }
 
 // AvailableDeliveryIntervalDto Доступные интервалы доставки
@@ -422,7 +336,7 @@ type CalculatorAvailableTariffsResponseTariffCodeDto struct {
 	// AdditionalOrderTypesParam Доп. типы заказа, применимые к тарифу
 	AdditionalOrderTypesParam *CalculatorAvailableTariffsResponseAdditionalOrderTypesParamDto `json:"additional_order_types_param,omitempty"`
 
-	// DeliveryModes Режимы доставки
+	// DeliveryModes Режимы доставки (Приложение 15)
 	DeliveryModes interface{} `json:"delivery_modes,omitempty"`
 
 	// HeightMax Максимальная высота упаковки
@@ -524,6 +438,9 @@ type CalculatorRequestDto struct {
 	// Date Дата и время планируемой передачи заказа. По умолчанию - текущая
 	Date interface{} `json:"date,omitempty"`
 
+	// DeliveryPoint Код ПВЗ СДЭК, на который будет доставлена посылка (для заказов с режимом доставки «до склада»). Если офис известен на этапе расчета, передача кода офиса в запросе повысит точность расчета сроков доставки. Если в запросе указывается код офиса, но он не подходит по параметрам, то офис подменяется на ближайший с подходящими характеристиками. Если ближайший офис не удалось подобрать, офис не будет включен в расчет.
+	DeliveryPoint interface{} `json:"delivery_point,omitempty"`
+
 	// FromLocation Населённый пункт для вычислений тарифа
 	FromLocation CalculatorLocationDto `json:"from_location"`
 
@@ -535,6 +452,9 @@ type CalculatorRequestDto struct {
 
 	// Services Дополнительные услуги
 	Services interface{} `json:"services,omitempty"`
+
+	// ShipmentPoint Код ПВЗ СДЭК, на который будет производиться самостоятельный привоз клиентом (для заказов с режимом доставки «от склада»). Если офис известен на этапе расчета, передача кода офиса в запросе повысит точность расчета сроков доставки. Если в запросе указывается код офиса, но он не подходит по параметрам, то офис подменяется на ближайший с подходящими характеристиками. Если ближайший офис не удалось подобрать, офис не будет включен в расчет.
+	ShipmentPoint interface{} `json:"shipment_point,omitempty"`
 
 	// TariffCode Код тарифа. Обязателен для расчета по коду тарифа
 	TariffCode interface{} `json:"tariff_code"`
@@ -548,10 +468,10 @@ type CalculatorRequestDto struct {
 
 // CalculatorResponseDto Ответ на расчет по коду тарифа
 type CalculatorResponseDto struct {
-	// CalendarMax Максимальное время доставки (в календарных днях)
+	// CalendarMax Максимальное время доставки (в календарных днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	CalendarMax interface{} `json:"calendar_max,omitempty"`
 
-	// CalendarMin Минимальное время доставки (в календарных днях)
+	// CalendarMin Минимальное время доставки (в календарных днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	CalendarMin interface{} `json:"calendar_min,omitempty"`
 
 	// Currency Валюта, в которой рассчитана стоимость доставки (код СДЭК)
@@ -560,22 +480,22 @@ type CalculatorResponseDto struct {
 	// DeliveryDateRange Прогнозируемый диапазон дат доставки. Для расчета дат используется производственный календарь. В зависимости от скорости тарифа учитываются или календарные, или рабочие дни. Если рабочие дни учитываются, то выходные и праздники пропускаются.
 	DeliveryDateRange *DeliveryDateRangeDto `json:"delivery_date_range,omitempty"`
 
-	// DeliverySum Стоимость доставки
+	// DeliverySum Базовая стоимость доставки без НДС и доп. услуг (НДС может быть включен в базовый тариф по условиям договора)
 	DeliverySum interface{} `json:"delivery_sum"`
 
 	// Errors Список ошибок
 	Errors interface{} `json:"errors,omitempty"`
 
-	// PeriodMax Максимальное время доставки (в рабочих днях)
+	// PeriodMax Максимальное время доставки (в рабочих днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	PeriodMax interface{} `json:"period_max"`
 
-	// PeriodMin Минимальное время доставки (в рабочих днях)
+	// PeriodMin Минимальное время доставки (в рабочих днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	PeriodMin interface{} `json:"period_min"`
 
 	// Services Дополнительные услуги (возвращается, если в запросе были переданы доп. услуги)
 	Services interface{} `json:"services,omitempty"`
 
-	// TotalSum Стоимость доставки с учетом дополнительных услуг
+	// TotalSum Стоимость доставки с учетом дополнительных услуг и НДС
 	TotalSum interface{} `json:"total_sum"`
 
 	// Warnings Список предупреждений
@@ -596,6 +516,9 @@ type CalculatorTariffListRequestDto struct {
 	// Date Дата и время планируемой передачи заказа. По умолчанию - текущая
 	Date interface{} `json:"date,omitempty"`
 
+	// DeliveryPoint Код ПВЗ СДЭК, на который будет доставлена посылка (для заказов с режимом доставки «до склада»). Если офис известен на этапе расчета, передача кода офиса в запросе повысит точность расчета сроков доставки. Если в запросе указывается код офиса, но он не подходит по параметрам, то офис подменяется на ближайший с подходящими характеристиками. Если ближайший офис не удалось подобрать, офис не будет включен в расчет.
+	DeliveryPoint interface{} `json:"delivery_point,omitempty"`
+
 	// FromLocation Населённый пункт для вычислений тарифа
 	FromLocation CalculatorLocationDto `json:"from_location"`
 
@@ -604,6 +527,9 @@ type CalculatorTariffListRequestDto struct {
 
 	// Packages Места (упаковки) в заказе
 	Packages interface{} `json:"packages"`
+
+	// ShipmentPoint Код ПВЗ СДЭК, на который будет производиться самостоятельный привоз клиентом (для заказов с режимом доставки «от склада»). Если офис известен на этапе расчета, передача кода офиса в запросе повысит точность расчета сроков доставки. Если в запросе указывается код офиса, но он не подходит по параметрам, то офис подменяется на ближайший с подходящими характеристиками. Если ближайший офис не удалось подобрать, офис не будет включен в расчет.
+	ShipmentPoint interface{} `json:"shipment_point,omitempty"`
 
 	// ToLocation Населённый пункт для вычислений тарифа
 	ToLocation CalculatorLocationDto `json:"to_location"`
@@ -638,10 +564,10 @@ type CalculatorTariffWithServiceResultErrorResponseDto struct {
 
 // CalculatorTariffWithServiceResultResponseDto defines model for CalculatorTariffWithServiceResultResponseDto.
 type CalculatorTariffWithServiceResultResponseDto struct {
-	// CalendarMax Максимальное время доставки (в календарных днях)
+	// CalendarMax Максимальное время доставки (в календарных днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	CalendarMax interface{} `json:"calendar_max,omitempty"`
 
-	// CalendarMin Минимальное время доставки (в календарных днях)
+	// CalendarMin Минимальное время доставки (в календарных днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	CalendarMin interface{} `json:"calendar_min,omitempty"`
 
 	// Currency Валюта, в которой рассчитана стоимость доставки (код СДЭК)
@@ -650,22 +576,22 @@ type CalculatorTariffWithServiceResultResponseDto struct {
 	// DeliveryDateRange Прогнозируемый диапазон дат доставки. Для расчета дат используется производственный календарь. В зависимости от скорости тарифа учитываются или календарные, или рабочие дни. Если рабочие дни учитываются, то выходные и праздники пропускаются.
 	DeliveryDateRange *DeliveryDateRangeDto `json:"delivery_date_range,omitempty"`
 
-	// DeliverySum Стоимость доставки
+	// DeliverySum Базовая стоимость доставки без НДС и доп. услуг (НДС может быть включен в базовый тариф по условиям договора)
 	DeliverySum interface{} `json:"delivery_sum"`
 
 	// Errors Список ошибок
 	Errors interface{} `json:"errors,omitempty"`
 
-	// PeriodMax Максимальное время доставки (в рабочих днях)
+	// PeriodMax Максимальное время доставки (в рабочих днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	PeriodMax interface{} `json:"period_max"`
 
-	// PeriodMin Минимальное время доставки (в рабочих днях)
+	// PeriodMin Минимальное время доставки (в рабочих днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	PeriodMin interface{} `json:"period_min"`
 
 	// Services Дополнительные услуги (возвращается, если в запросе были переданы доп. услуги)
 	Services interface{} `json:"services,omitempty"`
 
-	// TotalSum Стоимость доставки с учетом дополнительных услуг
+	// TotalSum Стоимость доставки с учетом дополнительных услуг и НДС
 	TotalSum interface{} `json:"total_sum"`
 
 	// WeightCalc Расчетный вес (в граммах)
@@ -695,6 +621,9 @@ type CalculatorTariffWithServicesRequestDto struct {
 	// Date Дата и время планируемой передачи заказа. По умолчанию - текущая
 	Date interface{} `json:"date,omitempty"`
 
+	// DeliveryPoint Код ПВЗ СДЭК, на который будет доставлена посылка (для заказов с режимом доставки «до склада»). Если офис известен на этапе расчета, передача кода офиса в запросе повысит точность расчета сроков доставки. Если в запросе указывается код офиса, но он не подходит по параметрам, то офис подменяется на ближайший с подходящими характеристиками. Если ближайший офис не удалось подобрать, офис не будет включен в расчет.
+	DeliveryPoint interface{} `json:"delivery_point,omitempty"`
+
 	// FromLocation Населённый пункт для вычислений тарифа
 	FromLocation CalculatorLocationDto `json:"from_location"`
 
@@ -706,6 +635,9 @@ type CalculatorTariffWithServicesRequestDto struct {
 
 	// Services Дополнительные услуги
 	Services interface{} `json:"services,omitempty"`
+
+	// ShipmentPoint Код ПВЗ СДЭК, на который будет производиться самостоятельный привоз клиентом (для заказов с режимом доставки «от склада»). Если офис известен на этапе расчета, передача кода офиса в запросе повысит точность расчета сроков доставки. Если в запросе указывается код офиса, но он не подходит по параметрам, то офис подменяется на ближайший с подходящими характеристиками. Если ближайший офис не удалось подобрать, офис не будет включен в расчет.
+	ShipmentPoint interface{} `json:"shipment_point,omitempty"`
 
 	// ToLocation Населённый пункт для вычислений тарифа
 	ToLocation CalculatorLocationDto `json:"to_location"`
@@ -778,12 +710,12 @@ type CheckResponseDto struct {
 
 // ClientEntity defines model for ClientEntity.
 type ClientEntity struct {
-	ContractorUuid openapi_types.UUID  `json:"contractorUuid"`
-	CreatedAt      *time.Time          `json:"createdAt,omitempty"`
-	Deleted        *bool               `json:"deleted,omitempty"`
-	MaxWebhooks    int32               `json:"maxWebhooks"`
-	Otp            *OtpEntity          `json:"otp,omitempty"`
-	Uuid           *openapi_types.UUID `json:"uuid,omitempty"`
+	ContractorUuid interface{} `json:"contractorUuid"`
+	CreatedAt      interface{} `json:"createdAt,omitempty"`
+	Deleted        interface{} `json:"deleted,omitempty"`
+	MaxWebhooks    interface{} `json:"maxWebhooks"`
+	Otp            *OtpEntity  `json:"otp,omitempty"`
+	Uuid           interface{} `json:"uuid,omitempty"`
 }
 
 // ContactDto Данные контрагента
@@ -825,6 +757,20 @@ type ContactDto struct {
 	Tin interface{} `json:"tin,omitempty"`
 }
 
+// ContragentNewTerritoriesResponse defines model for ContragentNewTerritoriesResponse.
+type ContragentNewTerritoriesResponse struct {
+	ContragentUuid interface{} `json:"contragent_uuid,omitempty"`
+	Created        interface{} `json:"created,omitempty"`
+	Updated        interface{} `json:"updated,omitempty"`
+	Uuid           interface{} `json:"uuid,omitempty"`
+	Version        interface{} `json:"version,omitempty"`
+}
+
+// ContragentsNewTerritoriesRequest defines model for ContragentsNewTerritoriesRequest.
+type ContragentsNewTerritoriesRequest struct {
+	Contragents interface{} `json:"contragents,omitempty"`
+}
+
 // CreateClientReturnRequestDto Запрос на создание клиентского возврата.
 type CreateClientReturnRequestDto struct {
 	// TariffCode Код тарифа
@@ -839,7 +785,7 @@ type DeliveryCostThresholdDto struct {
 	// Threshold Порог стоимости товара (действует по условию меньше или равно), в целых единицах валюты
 	Threshold interface{} `json:"threshold,omitempty"`
 
-	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - нет НДС)
+	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - без НДС)
 	VatRate interface{} `json:"vat_rate,omitempty"`
 
 	// VatSum Сумма НДС. Обязательно, если передано delivery_recipient_cost_adv.threshold.vat_rate
@@ -864,29 +810,49 @@ type DeliveryProblemResponseDto struct {
 	CreateDate interface{} `json:"create_date,omitempty"`
 }
 
-// DeliveryRecipientCostRequestDto Доп. сбор за доставку, которую ИМ берет с получателя. Только для заказов "интернет-магазин".  <br>
-// Для направлений Беларусь-Беларусь и РФ-Беларусь это поле игнорируется.
+// DeliveryRecipientCostRequestDto Доп. сбор за доставку, которую ИМ берет с получателя. Только для заказов "интернет-магазин".  <br>Для направлений Беларусь-Беларусь и РФ-Беларусь это поле игнорируется.
 type DeliveryRecipientCostRequestDto struct {
-	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя.
+	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя. Если передано значение 0, ставка НДС не применяется.
 	Value interface{} `json:"value"`
 
-	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - нет НДС)
+	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - без НДС)
+	VatRate interface{} `json:"vat_rate,omitempty"`
+
+	// VatSum Сумма НДС. Обязательно, если передано delivery_recipient_cost.vat_rate
+	VatSum interface{} `json:"vat_sum,omitempty"`
+}
+
+// DeliveryRecipientCostResponseDto Доп. сбор за доставку, которую ИМ берет с получателя. Актуально только для заказов "интернет-магазин".
+type DeliveryRecipientCostResponseDto struct {
+	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя. Если передано значение 0, ставка НДС не применяется.
+	Value interface{} `json:"value"`
+
+	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - без НДС)
 	VatRate interface{} `json:"vat_rate,omitempty"`
 
 	// VatSum Сумма НДС
 	VatSum interface{} `json:"vat_sum,omitempty"`
 }
 
-// DeliveryRecipientCostResponseDto Доп. сбор за доставку, которую ИМ берет с получателя. Актуально только для заказов "интернет-магазин".
-type DeliveryRecipientCostResponseDto struct {
-	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя.
-	Value interface{} `json:"value"`
+// DomainAddBlackListRequest defines model for DomainAddBlackListRequest.
+type DomainAddBlackListRequest struct {
+	DomainList interface{} `json:"domain_list"`
+}
 
-	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - нет НДС)
-	VatRate interface{} `json:"vat_rate,omitempty"`
+// DomainBlackListResult defines model for DomainBlackListResult.
+type DomainBlackListResult struct {
+	CreatedAt interface{} `json:"createdAt,omitempty"`
+	Deleted   interface{} `json:"deleted,omitempty"`
+	Domain    interface{} `json:"domain,omitempty"`
+	Ip        interface{} `json:"ip,omitempty"`
+	UpdatedAt interface{} `json:"updatedAt,omitempty"`
+	Uuid      interface{} `json:"uuid,omitempty"`
+}
 
-	// VatSum Сумма НДС
-	VatSum interface{} `json:"vat_sum,omitempty"`
+// DomainDeleteBlackListRequest defines model for DomainDeleteBlackListRequest.
+type DomainDeleteBlackListRequest struct {
+	DomainList interface{} `json:"domain_list"`
+	IpList     interface{} `json:"ip_list"`
 }
 
 // EntityDto defines model for EntityDto.
@@ -895,8 +861,17 @@ type EntityDto struct {
 	Uuid interface{} `json:"uuid,omitempty"`
 }
 
-// ErrorDto Ошибка, или предупреждение, возникшие в ходе выполнения запроса
+// ErrorDto Информация об ошибке
 type ErrorDto struct {
+	// Error Код ошибки
+	Error *string `json:"error,omitempty"`
+
+	// ErrorDescription Сообщение об ошибке
+	ErrorDescription *string `json:"error_description,omitempty"`
+}
+
+// ErrorDto1 Ошибка, или предупреждение, возникшие в ходе выполнения запроса
+type ErrorDto1 struct {
 	// Code Код ошибки
 	Code string `json:"code"`
 
@@ -904,8 +879,8 @@ type ErrorDto struct {
 	Message string `json:"message"`
 }
 
-// ErrorDto1 Ошибка, возникшая в ходе выполнения запроса
-type ErrorDto1 struct {
+// ErrorDto2 Ошибка, возникшая в ходе выполнения запроса
+type ErrorDto2 struct {
 	// AdditionalCode Дополнительный код ошибки для службы поддержки
 	AdditionalCode interface{} `json:"additional_code,omitempty"`
 
@@ -916,28 +891,19 @@ type ErrorDto1 struct {
 	Message interface{} `json:"message"`
 }
 
-// ErrorDto2 Информация об ошибке
-type ErrorDto2 struct {
+// ErrorDto3 Информация об ошибке
+type ErrorDto3 struct {
 	// Code Код ошибки
-	Code *string `json:"code,omitempty"`
+	Code interface{} `json:"code,omitempty"`
 
 	// Message Сообщение об ошибке
-	Message *string `json:"message,omitempty"`
+	Message interface{} `json:"message,omitempty"`
 }
 
-// ErrorResponseDto Транспорт ответа на получение токена авторизации (авторизацию)
+// ErrorResponseDto Стандартный формат ответа контроллера в случае ошибки
 type ErrorResponseDto struct {
-	// Error Ошибка
-	Error string `json:"error"`
-
-	// ErrorDescription Описание ошибки
-	ErrorDescription string `json:"error_description"`
-}
-
-// ErrorResponseDto1 Стандартный формат ответа контроллера в случае ошибки
-type ErrorResponseDto1 struct {
 	// Alerts Список ошибок
-	Alerts *[]AlertDto `json:"alerts,omitempty"`
+	Alerts interface{} `json:"alerts,omitempty"`
 }
 
 // EstimatedDeliveryIntervalDto Доступные интервалы доставки до создания заказа
@@ -1122,7 +1088,7 @@ type GetPrealertResponseDtoPrealertDto struct {
 	// Orders Список заказов, которые планируется передать в СДЭК
 	Orders interface{} `json:"orders"`
 
-	// PlannedDate Планируемая дата передачи заказов в СДЭК
+	// PlannedDate Планируемая дата передачи заказов в СДЭК. Не должна быть меньше, чем задано в условиях договора на обработку преалерта. Обычно срок составляет 24 часа от текущего времени.
 	PlannedDate interface{} `json:"planned_date"`
 
 	// PrealertNumber Номер преалерта в ИС СДЭК
@@ -1201,7 +1167,10 @@ type IntakeAvailableDaysLocationDto struct {
 
 // IntakeAvailableDaysRequestDto Запрос на получение доступных дат вызова курьера для населенных пунктов
 type IntakeAvailableDaysRequestDto struct {
-	// Date До какого числа включительно получить доступные дни (по умолчанию сегодня плюс две недели)
+	// Date Дата, до какого числа включительно получить доступные дни.<br>
+	// Например, если будет передана дата "2026-03-25", то вернутся все даты, в которые доступен забор груза, начиная с даты запроса и до "2026-03-25" включительно.<br>
+	// Часовой пояс пользователя не учитывается.<br>
+	// Если дата не передана, то даты вернутся по умолчанию с промежутком от сегодня до плюс две недели.
 	Date interface{} `json:"date,omitempty"`
 
 	// FromLocation Населённый пункт
@@ -1212,7 +1181,8 @@ type IntakeAvailableDaysRequestDto struct {
 type IntakeAvailableDaysResponseDto struct {
 	// AllDays Признак "Забор доступен по всем дням", может принимать значения:<br>
 	// "true" - забор доступен по всем дням;<br>
-	// "false" - забор доступен не по всем дням.
+	// "false" - забор доступен не по всем дням.<br>
+	// Если забор доступен по всем дням из запрошенного диапазона дат, в ответе вернется "all_days" = true, список дат в "date" при этом возвращен не будет.
 	AllDays interface{} `json:"all_days,omitempty"`
 
 	// Date Доступные даты для забора курьером
@@ -1332,7 +1302,7 @@ type IntakeDto struct {
 	// Name Описание груза. Необходимо заполнять, если не передан номер заказа. Иначе значение берется из заказа
 	Name interface{} `json:"name,omitempty"`
 
-	// NeedCall Необходим прозвон получателя (по умолчанию - false)
+	// NeedCall Необходим прозвон отправителя (по умолчанию - false)
 	NeedCall interface{} `json:"need_call,omitempty"`
 
 	// OrderUuid Идентификатор заказа в ИС СДЭК.  Обязателен, если не указан номер заказа
@@ -1401,7 +1371,7 @@ type IntakeInfoResponseEntity struct {
 	// Name Описание груза
 	Name interface{} `json:"name,omitempty"`
 
-	// NeedCall Необходим прозвон получателя (по умолчанию - false)
+	// NeedCall Необходим прозвон отправителя (по умолчанию - false)
 	NeedCall interface{} `json:"need_call,omitempty"`
 
 	// OrderUuid Идентификатор заказа в ИС СДЭК.  Обязателен, если не указан номер заказа
@@ -1590,9 +1560,12 @@ type ItemRequestDto struct {
 
 	// NameI18n Наименование на иностранном языке. Обязательно для международных заказов и доместиковых заказов с доп.типом "ТО для последней мили".
 	NameI18n interface{} `json:"name_i18n,omitempty"`
-	Payment  MoneyDto    `json:"payment"`
 
-	// Seller Реквизиты истинного продавца. Используется, когда нужно отобразить в заказе и чеке данные истинных продавцов по товарам, либо для передачи IDTOP (идентификатор подразделения компании продавца в ЛК ГИИС), если в товарах передается УИН ювелирного изделия. IDTOP необходим, чтобы ГИИС ДМ ДК имели возможность понять какое обособленное подразделение производит передачу УИН в курьерскую компанию.
+	// Payment Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный платеж, в случае предоплаты значение = 0
+	Payment MoneyDto `json:"payment"`
+
+	// Seller Реквизиты истинного продавца. Используется, когда нужно отобразить в заказе и чеке данные истинных продавцов по товарам, либо для передачи IDTOP (идентификатор подразделения компании продавца в ЛК ГИИС), если в товарах передается УИН ювелирного изделия. IDTOP необходим, чтобы ГИИС ДМ ДК имели возможность понять какое обособленное подразделение производит передачу УИН в курьерскую компанию.<br>
+	// Если требуется, чтобы реквизиты истинного продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 	Seller *SellerItemDto `json:"seller,omitempty"`
 
 	// Url Ссылка на сайт интернет-магазина с описанием товара. Обязательно для международных заказов и доместиковых заказов с доп.типом "ТО для последней мили".
@@ -1656,12 +1629,12 @@ type ItemResponseDto struct {
 	// NameI18n Наименование на иностранном языке. Обязательно для международных заказов и доместиковых заказов с доп.типом "ТО для последней мили".
 	NameI18n interface{} `json:"name_i18n,omitempty"`
 
-	// Payment Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный<br>
-	//   платеж, в случае предоплаты значение = 0.
+	// Payment Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный платеж, в случае предоплаты значение = 0
 	Payment          ResponseMoneyDto  `json:"payment"`
 	ReturnItemDetail *ReturnItemDetail `json:"return_item_detail,omitempty"`
 
-	// Seller Реквизиты истинного продавца. Используется, когда нужно отобразить в заказе и чеке данные истинных продавцов по товарам, либо для передачи IDTOP (идентификатор подразделения компании продавца в ЛК ГИИС), если в товарах передается УИН ювелирного изделия. IDTOP необходим, чтобы ГИИС ДМ ДК имели возможность понять какое обособленное подразделение производит передачу УИН в курьерскую компанию.
+	// Seller Реквизиты истинного продавца. Используется, когда нужно отобразить в заказе и чеке данные истинных продавцов по товарам, либо для передачи IDTOP (идентификатор подразделения компании продавца в ЛК ГИИС), если в товарах передается УИН ювелирного изделия. IDTOP необходим, чтобы ГИИС ДМ ДК имели возможность понять какое обособленное подразделение производит передачу УИН в курьерскую компанию.<br>
+	// Если требуется, чтобы реквизиты истинного продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 	Seller *SellerItemDto `json:"seller,omitempty"`
 
 	// Url Ссылка на сайт интернет-магазина с описанием товара. Обязательно для международных заказов и доместиковых заказов с доп.типом "ТО для последней мили".
@@ -1685,8 +1658,48 @@ type ItemResponseDto struct {
 	WifiGsm interface{} `json:"wifi_gsm,omitempty"`
 }
 
-// LocationDto Населённый пункт
+// LocationDto Транспорт локации
 type LocationDto struct {
+	AddressString    *string             `json:"addressString,omitempty"`
+	CityCode         *string             `json:"cityCode,omitempty"`
+	CityName         *string             `json:"cityName,omitempty"`
+	CityUuid         *openapi_types.UUID `json:"cityUuid,omitempty"`
+	CoordinateTarget *string             `json:"coordinateTarget,omitempty"`
+	Country          *string             `json:"country,omitempty"`
+	CountryCode      *string             `json:"countryCode,omitempty"`
+	CountryCodeCdek  *string             `json:"countryCodeCdek,omitempty"`
+	CreationPermit   *bool               `json:"creationPermit,omitempty"`
+	FiasGuid         *openapi_types.UUID `json:"fiasGuid,omitempty"`
+	FiasLevel        *int32              `json:"fiasLevel,omitempty"`
+	Flat             *string             `json:"flat,omitempty"`
+	House            *string             `json:"house,omitempty"`
+	HouseGuid        *openapi_types.UUID `json:"houseGuid,omitempty"`
+	IqdqErrorMessage *string             `json:"iqdqErrorMessage,omitempty"`
+	IqdqStatusError  *string             `json:"iqdqStatusError,omitempty"`
+	IqdqValid        *bool               `json:"iqdqValid,omitempty"`
+	Kladr            *string             `json:"kladr,omitempty"`
+	Latitude         *float32            `json:"latitude,omitempty"`
+	Longitude        *float32            `json:"longitude,omitempty"`
+
+	// NearestCity Транспорт ближайшего найденного города
+	NearestCity    *NearestCityDto     `json:"nearestCity,omitempty"`
+	PaymentLimit   *float32            `json:"paymentLimit,omitempty"`
+	Postcode       *string             `json:"postcode,omitempty"`
+	Postcodes      *[]string           `json:"postcodes,omitempty"`
+	Priority       *bool               `json:"priority,omitempty"`
+	Region         *string             `json:"region,omitempty"`
+	RegionCode     *string             `json:"regionCode,omitempty"`
+	RegionCodeExt  *string             `json:"regionCodeExt,omitempty"`
+	RegionFiasGuid *openapi_types.UUID `json:"regionFiasGuid,omitempty"`
+	RegionUuid     *openapi_types.UUID `json:"regionUuid,omitempty"`
+	Street         *string             `json:"street,omitempty"`
+	SubRegion      *string             `json:"subRegion,omitempty"`
+	SubRegionUuid  *openapi_types.UUID `json:"subRegionUuid,omitempty"`
+	Timezone       *string             `json:"timezone,omitempty"`
+}
+
+// LocationDto1 Населённый пункт
+type LocationDto1 struct {
 	// Address Строка адреса
 	Address interface{} `json:"address,omitempty"`
 
@@ -1799,6 +1812,41 @@ type LocationInfoDto struct {
 	SubRegion interface{} `json:"sub_region,omitempty"`
 }
 
+// LocationPostcodeDto Транспорт почтового индекса
+type LocationPostcodeDto struct {
+	CityCode *string `json:"cityCode,omitempty"`
+	CityUuid *string `json:"cityUuid,omitempty"`
+	Postcode *string `json:"postcode,omitempty"`
+}
+
+// LocationRegionSearchDto defines model for LocationRegionSearchDto.
+type LocationRegionSearchDto struct {
+	CountryCodes   *[]string `json:"countryCodes,omitempty"`
+	Page           *int32    `json:"page,omitempty"`
+	RegionFiasGuid *string   `json:"regionFiasGuid,omitempty"`
+	Size           *int32    `json:"size,omitempty"`
+}
+
+// LocationSearchDto defines model for LocationSearchDto.
+type LocationSearchDto struct {
+	Address              *string             `json:"address,omitempty"`
+	CityCode             *string             `json:"cityCode,omitempty"`
+	CityName             *string             `json:"cityName,omitempty"`
+	CityUuids            *[]string           `json:"cityUuids,omitempty"`
+	Country              *string             `json:"country,omitempty"`
+	CountryCodes         *[]string           `json:"countryCodes,omitempty"`
+	CreationPermitIgnore *bool               `json:"creationPermitIgnore,omitempty"`
+	FiasGuid             *openapi_types.UUID `json:"fiasGuid,omitempty"`
+	Page                 *int32              `json:"page,omitempty"`
+	PaymentLimit         *float32            `json:"paymentLimit,omitempty"`
+	Postcode             *string             `json:"postcode,omitempty"`
+	Region               *string             `json:"region,omitempty"`
+	RegionCode           *string             `json:"regionCode,omitempty"`
+	ShowPostcodes        *bool               `json:"showPostcodes,omitempty"`
+	Size                 *int32              `json:"size,omitempty"`
+	SubRegion            *string             `json:"subRegion,omitempty"`
+}
+
 // LocationSearchResponseDto Ответ на запрос получения списка населенных пунктов
 type LocationSearchResponseDto struct {
 	// Result Список населенных пунктов
@@ -1808,16 +1856,26 @@ type LocationSearchResponseDto struct {
 	ScrollId interface{} `json:"scrollId,omitempty"`
 }
 
-// MoneyDto defines model for MoneyDto.
+// MoneyDto Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный платеж, в случае предоплаты значение = 0
 type MoneyDto struct {
-	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя.
+	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя. Если передано значение 0, ставка НДС не применяется.
 	Value interface{} `json:"value"`
 
-	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - нет НДС)
+	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - без НДС)
 	VatRate interface{} `json:"vat_rate,omitempty"`
 
 	// VatSum Сумма НДС. Обязательно, если передано payment.vat_rate
 	VatSum interface{} `json:"vat_sum,omitempty"`
+}
+
+// NearestCityDto Транспорт ближайшего найденного города
+type NearestCityDto struct {
+	Code      *string  `json:"code,omitempty"`
+	Distance  *float64 `json:"distance,omitempty"`
+	FullName  *string  `json:"fullName,omitempty"`
+	Latitude  *float32 `json:"latitude,omitempty"`
+	Longitude *float32 `json:"longitude,omitempty"`
+	Name      *string  `json:"name,omitempty"`
 }
 
 // OfficeCellDimensionsDto Размеры ячеек
@@ -1867,6 +1925,9 @@ type OfficeDto struct {
 	// HaveFastPaymentSystem Есть безналичный расчёт по СБП
 	HaveFastPaymentSystem interface{} `json:"have_fast_payment_system"`
 
+	// HeightMax Максимальная высота грузоместа в см, которую может принять офис
+	HeightMax interface{} `json:"height_max,omitempty"`
+
 	// IsDressingRoom Есть ли примерочная
 	IsDressingRoom interface{} `json:"is_dressing_room"`
 
@@ -1881,6 +1942,9 @@ type OfficeDto struct {
 
 	// IsReception Является пунктом приёма
 	IsReception interface{} `json:"is_reception"`
+
+	// LengthMax Максимальная длина грузоместа в см, которую может принять офис
+	LengthMax interface{} `json:"length_max,omitempty"`
 
 	// Location Информация об офисе
 	Location OfficeLocationDto `json:"location"`
@@ -1912,6 +1976,11 @@ type OfficeDto struct {
 	// Site Ссылка на данный офис на сайте СДЭК
 	Site interface{} `json:"site,omitempty"`
 
+	// Status Статус офиса. Допустимые значения (enum): <br>
+	// "ACTIVE", <br>
+	// "CLOSED"
+	Status interface{} `json:"status"`
+
 	// TakeOnly Является ли офис только пунктом выдачи или также осуществляет приём грузов
 	TakeOnly interface{} `json:"take_only"`
 
@@ -1929,6 +1998,9 @@ type OfficeDto struct {
 
 	// WeightMin Минимальный вес (в кг.), принимаемый в ПВЗ (> WeightMin)
 	WeightMin interface{} `json:"weight_min,omitempty"`
+
+	// WidthMax Максимальная ширина грузоместа в см, которую может принять офис
+	WidthMax interface{} `json:"width_max,omitempty"`
 
 	// WorkTime Режим работы, строка вида «пн-пт 9-18, сб 9-16»
 	WorkTime interface{} `json:"work_time"`
@@ -2048,8 +2120,7 @@ type OrderCreateRequestDto struct {
 	// DeliveryPoint Код ПВЗ СДЭК, на который будет доставлена посылка. Обязательное поле, если заказ с тарифом "до склада" или "до постамата". Не может использоваться одновременно с to_location
 	DeliveryPoint interface{} `json:"delivery_point,omitempty"`
 
-	// DeliveryRecipientCost Доп. сбор за доставку, которую ИМ берет с получателя. Только для заказов "интернет-магазин".  <br>
-	// Для направлений Беларусь-Беларусь и РФ-Беларусь это поле игнорируется.
+	// DeliveryRecipientCost Доп. сбор за доставку, которую ИМ берет с получателя. Только для заказов "интернет-магазин".  <br>Для направлений Беларусь-Беларусь и РФ-Беларусь это поле игнорируется.
 	DeliveryRecipientCost *DeliveryRecipientCostRequestDto `json:"delivery_recipient_cost,omitempty"`
 
 	// DeliveryRecipientCostAdv Доп. сбор за доставку (которую ИМ берет с получателя) в зависимости от суммы заказа (ДСД).
@@ -2062,6 +2133,7 @@ type OrderCreateRequestDto struct {
 	// <br>
 	// Если при полном отказе от товара необходимо взять доп. сбор за доставку, то при настройке порогов в интеграции, необходимо указать дополнительную товарную позицию «Доставка» в количестве 1 шт. стоимостью 0 рублей, сумму доп.сбора за доставку с получателя необходимо задать при минимальном пороге стоимости, далее пороги ДСД, комментарии к заказу о необходимости вручения позиции "Доставка".
 	DeliveryRecipientCostAdv interface{} `json:"delivery_recipient_cost_adv,omitempty"`
+	DeliveryTypes            interface{} `json:"delivery_types,omitempty"`
 
 	// DeveloperKey Ключ разработчика
 	DeveloperKey interface{} `json:"developer_key,omitempty"`
@@ -2077,7 +2149,7 @@ type OrderCreateRequestDto struct {
 	// Иначе необходимо использовать отдельный метод "Клиентские возвраты" (POST /v2/orders/{order_uuid}/clientReturn)
 	IsClientReturn interface{} `json:"is_client_return,omitempty"`
 
-	// Number Номера заказа в ИС Клиента. Только для заказов "интернет-магазин". Может содержать только цифры, буквы латинского алфавита или спецсимволы (формат ASCII)
+	// Number Номер заказа в ИС клиента (только для заказов типа «интернет-магазин»). Допустимые символы: цифры, латинские буквы, спецсимволы (ASCII). В пределах одного договора среди активных (успешно созданных) неудаленных заказов номер заказа должен быть уникален. Исключение: если заказ с таким же номером находится в финальном статусе (DELIVERED / NOT_DELIVERED), создание нового заказа с повторным номером разрешено.
 	Number interface{} `json:"number,omitempty"`
 
 	// Packages Список информации по местам (упаковкам). Количество мест в заказе может быть от 1 до 255
@@ -2089,7 +2161,7 @@ type OrderCreateRequestDto struct {
 	// Recipient Получатель
 	Recipient RecipientContactDto `json:"recipient"`
 
-	// Seller Реквизиты истинного продавца
+	// Seller Реквизиты истинного продавца. Если требуется, чтобы реквизиты продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 	Seller *SellerDto `json:"seller,omitempty"`
 
 	// Sender Отправитель. Не обязателен для заполнения, если заказ типа "интернет-магазин", обязателен, если заказ типа "доставка"
@@ -2121,7 +2193,7 @@ type OrderCreateRequestDto struct {
 	Type interface{} `json:"type,omitempty"`
 
 	// WidgetToken Токен CMS, содержащий дополнительные данные для заполнения данных о заказе
-	WidgetToken interface{} `json:"widget_token,omitempty"`
+	WidgetToken interface{} `json:"widgetToken,omitempty"`
 }
 
 // OrderDelayReason Информация о причинах задержки
@@ -2195,6 +2267,7 @@ type OrderResponseDto struct {
 	// DeliveryRecipientCostAdv Доп. сбор за доставку (которую ИМ берет с получателя) в зависимости от суммы заказа. Только для заказов "интернет-магазин".  <br>
 	// Для направлений Беларусь-Беларусь и РФ-Беларусь это поле игнорируется.
 	DeliveryRecipientCostAdv interface{} `json:"delivery_recipient_cost_adv,omitempty"`
+	DeliveryTypes            interface{} `json:"delivery_types,omitempty"`
 
 	// DeveloperKey Ключ разработчика
 	DeveloperKey interface{} `json:"developer_key,omitempty"`
@@ -2217,7 +2290,7 @@ type OrderResponseDto struct {
 	// KeepFreeUntil Для заказа до ПВЗ: хранить бесплатно до
 	KeepFreeUntil interface{} `json:"keep_free_until,omitempty"`
 
-	// Number Номера заказа в ИС Клиента. Только для заказов "интернет-магазин". Может содержать только цифры, буквы латинского алфавита или спецсимволы (формат ASCII)
+	// Number Номер заказа в ИС клиента (только для заказов типа «интернет-магазин»). Допустимые символы: цифры, латинские буквы, спецсимволы (ASCII). В пределах одного договора среди активных (успешно созданных) неудаленных заказов номер заказа должен быть уникален. Исключение: если заказ с таким же номером находится в финальном статусе (DELIVERED / NOT_DELIVERED), создание нового заказа с повторным номером разрешено.
 	Number interface{} `json:"number,omitempty"`
 
 	// Packages Список информации по местам (упаковкам). Количество мест в заказе может быть от 1 до 255
@@ -2229,7 +2302,7 @@ type OrderResponseDto struct {
 	// Recipient Получатель
 	Recipient RecipientResponseContactDto `json:"recipient"`
 
-	// Seller Реквизиты истинного продавца
+	// Seller Реквизиты истинного продавца. Если требуется, чтобы реквизиты продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 	Seller *SellerDto `json:"seller,omitempty"`
 
 	// Sender Отправитель
@@ -2256,9 +2329,6 @@ type OrderResponseDto struct {
 	// ToLocation Адрес получения
 	ToLocation ResponseToLocationDto `json:"to_location"`
 
-	// TransactedPayment Признак того, что по заказу была получена информация о переводе наложенного платежа интернет-магазину
-	TransactedPayment interface{} `json:"transacted_payment,omitempty"`
-
 	// Type Тип заказа.<br>
 	// - 1 - "интернет-магазин" (только для договора типа "Договор с ИМ"),<br>
 	// - 2 - "доставка" (для любого договора).
@@ -2276,7 +2346,7 @@ type OrderStatusDto struct {
 	// CityUuid Идентификатор места (города) возникновения статуса
 	CityUuid interface{} `json:"city_uuid,omitempty"`
 
-	// Code Код статуса
+	// Code Код статуса (Приложение 15. Статусы заказов в методах получения информации)
 	Code interface{} `json:"code,omitempty"`
 
 	// DateTime Дата и время установки статуса
@@ -2308,8 +2378,10 @@ type OrderUpdateRequestDto struct {
 	Comment interface{} `json:"comment,omitempty"`
 
 	// DeliveryPoint Код ПВЗ СДЭК, на который будет доставлена посылка. Обязательное поле, если заказ с тарифом "до склада" или "до постамата". Не может использоваться одновременно с to_location
-	DeliveryPoint         interface{} `json:"delivery_point,omitempty"`
-	DeliveryRecipientCost *MoneyDto   `json:"delivery_recipient_cost,omitempty"`
+	DeliveryPoint interface{} `json:"delivery_point,omitempty"`
+
+	// DeliveryRecipientCost Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный платеж, в случае предоплаты значение = 0
+	DeliveryRecipientCost *MoneyDto `json:"delivery_recipient_cost,omitempty"`
 
 	// DeliveryRecipientCostAdv Доп. сбор за доставку (которую ИМ берет с получателя) в зависимости от суммы заказа (ДСД).
 	// <br><br>
@@ -2321,14 +2393,15 @@ type OrderUpdateRequestDto struct {
 	// <br>
 	// Если при полном отказе от товара необходимо взять доп. сбор за доставку, то при настройке порогов в интеграции, необходимо указать дополнительную товарную позицию «Доставка» в количестве 1 шт. стоимостью 0 рублей, сумму доп.сбора за доставку с получателя необходимо задать при минимальном пороге стоимости, далее пороги ДСД, комментарии к заказу о необходимости вручения позиции "Доставка".
 	DeliveryRecipientCostAdv interface{} `json:"delivery_recipient_cost_adv,omitempty"`
+	DeliveryTypes            interface{} `json:"delivery_types,omitempty"`
 
 	// FromLocation Населённый пункт
-	FromLocation *LocationDto `json:"from_location,omitempty"`
+	FromLocation *LocationDto1 `json:"from_location,omitempty"`
 
 	// HasReverseOrder Признак необходимости создания реверсного заказа
 	HasReverseOrder interface{} `json:"has_reverse_order,omitempty"`
 
-	// Number Номера заказа в ИС Клиента. Только для заказов "интернет-магазин". Может содержать только цифры, буквы латинского алфавита или спецсимволы (формат ASCII)
+	// Number Номер заказа в ИС клиента (только для заказов типа «интернет-магазин»). Допустимые символы: цифры, латинские буквы, спецсимволы (ASCII). В пределах одного договора среди активных (успешно созданных) неудаленных заказов номер заказа должен быть уникален. Исключение: если заказ с таким же номером находится в финальном статусе (DELIVERED / NOT_DELIVERED), создание нового заказа с повторным номером разрешено.
 	Number interface{} `json:"number,omitempty"`
 
 	// Packages Список информации по местам (упаковкам). Количество мест в заказе может быть от 1 до 255
@@ -2337,7 +2410,7 @@ type OrderUpdateRequestDto struct {
 	// Recipient Получатель
 	Recipient RecipientContactDto `json:"recipient"`
 
-	// Seller Реквизиты истинного продавца
+	// Seller Реквизиты истинного продавца. Если требуется, чтобы реквизиты продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 	Seller *SellerDto `json:"seller,omitempty"`
 
 	// Sender Отправитель. Не обязателен для заполнения, если заказ типа "интернет-магазин", обязателен, если заказ типа "доставка"
@@ -2353,7 +2426,7 @@ type OrderUpdateRequestDto struct {
 	TariffCode interface{} `json:"tariff_code,omitempty"`
 
 	// ToLocation Населённый пункт
-	ToLocation *LocationDto `json:"to_location,omitempty"`
+	ToLocation *LocationDto1 `json:"to_location,omitempty"`
 
 	// Type Тип заказа.<br>
 	// - 1 - "интернет-магазин" (только для договора типа "Договор с ИМ"),<br>
@@ -2367,43 +2440,43 @@ type OrderUpdateRequestDto struct {
 // OtpCreateRequest Запрос на добавление информации об OTP
 type OtpCreateRequest struct {
 	// ClientContractorUuid Идентификатор клиента
-	ClientContractorUuid openapi_types.UUID `json:"clientContractorUuid"`
+	ClientContractorUuid interface{} `json:"clientContractorUuid"`
 
 	// Length Длина кода, который будет отправлен клиенту
-	Length int32 `json:"length"`
+	Length interface{} `json:"length"`
 
 	// TtlSeconds Время жизни кода в секундах
-	TtlSeconds int32 `json:"ttlSeconds"`
+	TtlSeconds interface{} `json:"ttlSeconds"`
 
 	// Url Ссылка на внешний сервис генерации OTP
-	Url string `json:"url"`
+	Url interface{} `json:"url"`
 }
 
 // OtpEntity defines model for OtpEntity.
 type OtpEntity struct {
-	CreatedAt  *time.Time          `json:"createdAt,omitempty"`
-	Length     int32               `json:"length"`
-	TtlSeconds int32               `json:"ttlSeconds"`
-	Url        string              `json:"url"`
-	Uuid       *openapi_types.UUID `json:"uuid,omitempty"`
+	CreatedAt  interface{} `json:"createdAt,omitempty"`
+	Length     interface{} `json:"length"`
+	TtlSeconds interface{} `json:"ttlSeconds"`
+	Url        interface{} `json:"url"`
+	Uuid       interface{} `json:"uuid,omitempty"`
 }
 
 // OtpRequest Запрос на генерацию OTP
 type OtpRequest struct {
 	// CdekNumber Номер заказа ЭК5
-	CdekNumber *string `json:"cdek_number,omitempty"`
+	CdekNumber interface{} `json:"cdek_number,omitempty"`
 
 	// SecurityCode Код OTP
-	SecurityCode *string `json:"security_code,omitempty"`
+	SecurityCode interface{} `json:"security_code,omitempty"`
 }
 
 // OtpResponse Ответ на запрос к методам OTP
 type OtpResponse struct {
 	// Length Длина отправляемого OTP
-	Length *int32 `json:"length,omitempty"`
+	Length interface{} `json:"length,omitempty"`
 
 	// TtlSeconds Время жизни отправляемого OTP
-	TtlSeconds *int32 `json:"ttlSeconds,omitempty"`
+	TtlSeconds interface{} `json:"ttlSeconds,omitempty"`
 }
 
 // PackageAddServiceResponseDto Дополнительная услуга для упаковки
@@ -2429,7 +2502,7 @@ type PackageHintDto struct {
 
 // PackageRequestDto Информация об упаковке
 type PackageRequestDto struct {
-	// Comment Комментарий к упаковке
+	// Comment Комментарий к упаковке. Обязательно и только для заказа типа "Доставка"
 	Comment interface{} `json:"comment,omitempty"`
 
 	// Height Габариты упаковки. Высота (в сантиметрах). Обязателен в случаях, <br>
@@ -2470,7 +2543,7 @@ type PackageResponseDto struct {
 	// Barcode Штрихкод упаковки в ИС СДЭК
 	Barcode interface{} `json:"barcode,omitempty"`
 
-	// Comment Комментарий к упаковке
+	// Comment Комментарий к упаковке. Обязательно и только для заказа типа "Доставка"
 	Comment interface{} `json:"comment,omitempty"`
 
 	// Height Габариты упаковки. Высота (в сантиметрах)
@@ -2548,30 +2621,6 @@ type PaymentInfoDto struct {
 	Type interface{} `json:"type"`
 }
 
-// PaymentOrderDto Заказ, по которому был переведен интернет-магазину наложенный платеж
-type PaymentOrderDto struct {
-	// CdekNumber Номер заказа СДЭК. Обязателен, если не указан идентификатор заказа
-	CdekNumber interface{} `json:"cdek_number"`
-
-	// Number Номер заказа в ИС Клиента
-	Number interface{} `json:"number"`
-
-	// OrderUuid Идентификатор заказа в ИС СДЭК.  Обязателен, если не указан номер заказа
-	OrderUuid interface{} `json:"order_uuid"`
-}
-
-// PaymentResponseDto Ответ на получение информации о переводе наложенного платежа
-type PaymentResponseDto struct {
-	// Errors Список ошибок
-	Errors interface{} `json:"errors,omitempty"`
-
-	// Orders Список заказов, по которым был переведен интернет-магазину наложенный платеж
-	Orders interface{} `json:"orders,omitempty"`
-
-	// Warnings Список предупреждений
-	Warnings interface{} `json:"warnings,omitempty"`
-}
-
 // PhoneDto Информация о телефонах
 type PhoneDto struct {
 	// Additional Дополнительная информация (добавочный номер)
@@ -2595,11 +2644,17 @@ type PhotoReadyOrderDto struct {
 	// CdekNumber Номер заказа СДЭК. Обязателен, если не указан идентификатор заказа
 	CdekNumber interface{} `json:"cdek_number,omitempty"`
 
-	// Link Ссылка на скачивание архива с фотографиями
+	// CreateDate Дата создания задания
+	CreateDate interface{} `json:"create_date,omitempty"`
+
+	// Link Ссылка на скачивание архива с фотографиями <br>Формат: https://api.cdek.ru/v2/photoDocument/{uuid} <br>Для получения архива воспользуйтесь методом "Скачивание готового архива"
 	Link interface{} `json:"link,omitempty"`
 
 	// OrderUuid Идентификатор заказа в ИС СДЭК.  Обязателен, если не указан номер заказа
 	OrderUuid interface{} `json:"order_uuid,omitempty"`
+
+	// Status Статус задания на фотографирование, в рамках которого был сформирован архив с фото документов. <br>Может принимать значения: <br>CREATED - Создано	<br>READY_FOR_EXECUTION - Готово к исполнению <br>IN_PROGRESS - В работе <br>DONE - Выполнено <br>SENT - Отправлено <br>DELIVERED - Доставлено <br>NOT_DELIVERED - Не вручено <br>ERROR - Ошибка <br>Архив является готовым к скачиванию, когда задание приобретает статус DONE.
+	Status interface{} `json:"status,omitempty"`
 }
 
 // PhotoRequestDto Запрос на получение списка заказов с готовыми фото
@@ -2697,8 +2752,8 @@ type RecipientContactDto struct {
 	// PassportSeries Серия паспорта
 	PassportSeries interface{} `json:"passport_series,omitempty"`
 
-	// Phones Список телефонов. Не более 10 номеров. Обязательно для заполнения, если при регистрации заказа не был указан номер получателя
-	Phones interface{} `json:"phones,omitempty"`
+	// Phones Список телефонов. Не более 10 номеров.
+	Phones interface{} `json:"phones"`
 
 	// Tin ИНН
 	Tin interface{} `json:"tin,omitempty"`
@@ -2743,6 +2798,19 @@ type RecipientResponseContactDto struct {
 	Tin interface{} `json:"tin,omitempty"`
 }
 
+// RegionDto Транспорт регионов
+type RegionDto struct {
+	CountryCode    *string             `json:"countryCode,omitempty"`
+	CountryCodeExt *string             `json:"countryCodeExt,omitempty"`
+	CountryName    *string             `json:"countryName,omitempty"`
+	Prefix         *string             `json:"prefix,omitempty"`
+	RegionCode     *string             `json:"regionCode,omitempty"`
+	RegionCodeExt  *string             `json:"regionCodeExt,omitempty"`
+	RegionFiasGuid *openapi_types.UUID `json:"regionFiasGuid,omitempty"`
+	RegionName     *string             `json:"regionName,omitempty"`
+	RegionUuid     *openapi_types.UUID `json:"regionUuid,omitempty"`
+}
+
 // RegionsResponseDto Транспорт ответа на запрос на поиск регионов
 type RegionsResponseDto struct {
 	// Country Название страны региона
@@ -2751,12 +2819,9 @@ type RegionsResponseDto struct {
 	// CountryCode Код страны в формате ISO_3166-1_alpha-2
 	CountryCode string `json:"country_code"`
 
-	// FiasRegionGuid Уникальный идентификатор ФИАС региона. Устаревшее поле.
+	// FiasRegionGuid Уникальный идентификатор ФИАС региона. Устаревшее поле - значения могут быть не актуальны
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	FiasRegionGuid *openapi_types.UUID `json:"fias_region_guid,omitempty"`
-
-	// KladrRegionCode Код КЛАДР региона населенного пункта
-	KladrRegionCode *string `json:"kladr_region_code,omitempty"`
 
 	// Region Название региона
 	Region string `json:"region"`
@@ -2770,7 +2835,7 @@ type RegisterPrealertRequestDto struct {
 	// Orders Список заказов, которые планируется передать в СДЭК
 	Orders interface{} `json:"orders"`
 
-	// PlannedDate Планируемая дата передачи заказов в СДЭК
+	// PlannedDate Планируемая дата передачи заказов в СДЭК. Не должна быть меньше, чем задано в условиях договора на обработку преалерта. Обычно срок составляет 24 часа от текущего времени.
 	PlannedDate interface{} `json:"planned_date"`
 
 	// ShipmentPoint Код ПВЗ, в который планируется передать заказы
@@ -2891,20 +2956,8 @@ type RelatedEntityDto struct {
 	Uuid interface{} `json:"uuid"`
 }
 
-// RequestDto Транспорт запроса на получение токена (авторизация пользователя)
+// RequestDto Информация о запросе над сущностью
 type RequestDto struct {
-	// ClientId Идентификатор клиента
-	ClientId string `json:"client_id"`
-
-	// ClientSecret Секретный ключ клиента
-	ClientSecret string `json:"client_secret"`
-
-	// GrantType Тип аутентификации. Доступное значение: client_credentials
-	GrantType string `json:"grant_type"`
-}
-
-// RequestDto1 Информация о запросе над сущностью
-type RequestDto1 struct {
 	// DateTime Дата и время установки текущего состояния запроса
 	DateTime interface{} `json:"date_time"`
 
@@ -2987,26 +3040,20 @@ type RequestFromLocationDto struct {
 // RequestInfoDto Информация о запросе
 type RequestInfoDto struct {
 	// DateTime Дата и время установки текущего статуса запроса
-	DateTime *time.Time `json:"date_time,omitempty"`
+	DateTime interface{} `json:"date_time,omitempty"`
 
 	// Errors Ошибки, возникшие в ходе выполнения запроса
-	Errors *[]ErrorDto2 `json:"errors,omitempty"`
+	Errors interface{} `json:"errors,omitempty"`
 
 	// RequestUuid Идентификатор запроса в ИС СДЭК
-	RequestUuid *openapi_types.UUID `json:"request_uuid,omitempty"`
+	RequestUuid interface{} `json:"request_uuid,omitempty"`
 
 	// State Текущее состояние запроса
-	State *RequestInfoDtoState `json:"state,omitempty"`
+	State interface{} `json:"state,omitempty"`
 
 	// Type Тип запроса
-	Type *RequestInfoDtoType `json:"type,omitempty"`
+	Type interface{} `json:"type,omitempty"`
 }
-
-// RequestInfoDtoState Текущее состояние запроса
-type RequestInfoDtoState string
-
-// RequestInfoDtoType Тип запроса
-type RequestInfoDtoType string
 
 // RequestToLocationDto Адрес получения. Не может использоваться одновременно с delivery_point. Обязательное поле, если заказ с тарифом "до двери"
 type RequestToLocationDto struct {
@@ -3112,10 +3159,10 @@ type ResponseDeliveryDetailDto struct {
 // ResponseDto Ответ на запрос
 type ResponseDto struct {
 	// Entity Информация о сущности, над которой выполняется запрос
-	Entity *map[string]interface{} `json:"entity,omitempty"`
+	Entity interface{} `json:"entity,omitempty"`
 
 	// Requests Список запросов
-	Requests *[]RequestInfoDto `json:"requests,omitempty"`
+	Requests interface{} `json:"requests,omitempty"`
 }
 
 // ResponseDtoOrderCreateRequestDto Ответ на запрос
@@ -3171,7 +3218,7 @@ type ResponseDtoWebhookDto struct {
 	Entity *WebhookDto `json:"entity,omitempty"`
 
 	// Requests Список запросов
-	Requests *[]RequestInfoDto `json:"requests,omitempty"`
+	Requests interface{} `json:"requests,omitempty"`
 }
 
 // ResponseDtoWebhookResponseDto Ответ на запрос
@@ -3180,7 +3227,7 @@ type ResponseDtoWebhookResponseDto struct {
 	Entity *WebhookResponseDto `json:"entity,omitempty"`
 
 	// Requests Список запросов
-	Requests *[]RequestInfoDto `json:"requests,omitempty"`
+	Requests interface{} `json:"requests,omitempty"`
 }
 
 // ResponseFromLocationDto Адрес отправления
@@ -3238,14 +3285,12 @@ type ResponseFromLocationDto struct {
 	TimeZone interface{} `json:"time_zone,omitempty"`
 }
 
-// ResponseMoneyDto Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный<br>
-//
-//	платеж, в случае предоплаты значение = 0.
+// ResponseMoneyDto Оплата за товар при получении (за единицу товара в валюте страны получателя, значение >=0) — наложенный платеж, в случае предоплаты значение = 0
 type ResponseMoneyDto struct {
-	// Value Сумма наложенного платежа, в том числе и НДС (в случае предоплаты = 0). Сумма не может быть больше 50000000 в валюте города получателя.
+	// Value Сумма платежа, включая НДС. Сумма не может быть больше 50000000 в валюте города получателя. Если передано значение 0, ставка НДС не применяется.
 	Value interface{} `json:"value"`
 
-	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - нет НДС)
+	// VatRate Ставка НДС с 01.01.2026 (значение - 0, 5, 7, 10, 16, 22, null - без НДС)
 	VatRate interface{} `json:"vat_rate,omitempty"`
 
 	// VatSum Сумма НДС. Обязательно, если передано payment.vat_rate
@@ -3319,7 +3364,7 @@ type ResponseToLocationDto struct {
 // RestrictionHintsRequestDto Запрос на проверку ограничений по международным заказам
 type RestrictionHintsRequestDto struct {
 	// FromLocation Населённый пункт
-	FromLocation *LocationDto `json:"from_location,omitempty"`
+	FromLocation *LocationDto1 `json:"from_location,omitempty"`
 
 	// Packages Список информации по местам (упаковкам)
 	Packages interface{} `json:"packages,omitempty"`
@@ -3328,7 +3373,7 @@ type RestrictionHintsRequestDto struct {
 	TariffCode interface{} `json:"tariff_code,omitempty"`
 
 	// ToLocation Населённый пункт
-	ToLocation *LocationDto `json:"to_location,omitempty"`
+	ToLocation *LocationDto1 `json:"to_location,omitempty"`
 }
 
 // RestrictionHintsResponseDto Ответ на запрос ограничений
@@ -3352,7 +3397,7 @@ type RestrictionItemRequestDto struct {
 	FeacnCode interface{} `json:"feacn_code,omitempty"`
 
 	// ItemId Идентификатор товара
-	ItemId interface{} `json:"item_id,omitempty"`
+	ItemId interface{} `json:"itemId,omitempty"`
 
 	// Name Наименование товара (может также содержать описание товара: размер, цвет).<br>
 	// Согласно законодательству РФ, название товара или услуги должно быть конкретным, понятным, позволяющим идентифицировать товар или услугу, должны быть отражены конкретные товарные позиции.<br>
@@ -3553,7 +3598,10 @@ type ScheduleDto struct {
 	// Comment Комментарий к договоренности о доставке
 	Comment interface{} `json:"comment,omitempty"`
 
-	// Date Дата доставки, согласованная с получателем. (Если заказ "До склада", эта дата не влияет на сроки доставки и может быть произвольной)
+	// Date Дата доставки, согласованная с получателем. <br>
+	// Если заказ "До склада", эта дата не влияет на сроки доставки и может быть произвольной. <br>
+	// Если заказ "До двери", то диапазон доступных дат для согласования для города-получателя определяется набором правил. <br>
+	// Рекомендуем получать доступный диапазон с помощью метода "Получение интервалов доставки" или "Получение интервалов доставки до создания заказа".
 	Date interface{} `json:"date"`
 
 	// DeliveryPoint Буквенно-цифровой код ПВЗ СДЭК, на который будет доставлена посылка, например "MSK93". Не может быть заполнен одновременно с to_location. Обязателен, если заказ "до склада"
@@ -3580,7 +3628,9 @@ type ScheduleInfoDto struct {
 	// Comment Комментарий к договоренности о доставке
 	Comment interface{} `json:"comment,omitempty"`
 
-	// Date Дата доставки, согласованная с получателем. (Если заказ "До склада", эта дата не влияет на сроки доставки и может быть произвольной). При прозвоне дата доставки до склада устанавливается в автоматическом режиме (дата создания прозвона +19 дней)
+	// Date Дата доставки, согласованная с получателем. <br>
+	// Если заказ "До склада", эта дата не влияет на сроки доставки и может быть произвольной. <br>
+	// При прозвоне дата доставки до склада устанавливается в автоматическом режиме (дата создания прозвона +19 дней)
 	Date interface{} `json:"date"`
 
 	// DeliveryPoint Новый код ПВЗ СДЭК, на который будет доставлена посылка (если требовалось изменить)
@@ -3674,7 +3724,7 @@ type ScheduleStatusDto struct {
 	Name interface{} `json:"name"`
 }
 
-// SellerDto Реквизиты истинного продавца
+// SellerDto Реквизиты истинного продавца. Если требуется, чтобы реквизиты продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 type SellerDto struct {
 	// Address Адрес истинного продавца
 	Address interface{} `json:"address,omitempty"`
@@ -3688,11 +3738,12 @@ type SellerDto struct {
 	// OwnershipForm Код формы собственности
 	OwnershipForm interface{} `json:"ownership_form,omitempty"`
 
-	// Phone Телефон истинного продавца
+	// Phone Телефон истинного продавца. Обязательно, если заполнен inn
 	Phone interface{} `json:"phone,omitempty"`
 }
 
-// SellerItemDto Реквизиты истинного продавца. Используется, когда нужно отобразить в заказе и чеке данные истинных продавцов по товарам, либо для передачи IDTOP (идентификатор подразделения компании продавца в ЛК ГИИС), если в товарах передается УИН ювелирного изделия. IDTOP необходим, чтобы ГИИС ДМ ДК имели возможность понять какое обособленное подразделение производит передачу УИН в курьерскую компанию.
+// SellerItemDto Реквизиты истинного продавца. Используется, когда нужно отобразить в заказе и чеке данные истинных продавцов по товарам, либо для передачи IDTOP (идентификатор подразделения компании продавца в ЛК ГИИС), если в товарах передается УИН ювелирного изделия. IDTOP необходим, чтобы ГИИС ДМ ДК имели возможность понять какое обособленное подразделение производит передачу УИН в курьерскую компанию.<br>
+// Если требуется, чтобы реквизиты истинного продавца отображались в чеках, то обязательно необходимо передать поля name, inn, phone. Если какое-то из полей не будет передано, в чеке будут отображены данные контрагента по договору.
 type SellerItemDto struct {
 	// Address Адрес истинного продавца. Используется при печати инвойсов для отображения адреса настоящего продавца товара либо торгового названия. Только для международных заказов "интернет-магазин"
 	Address interface{} `json:"address,omitempty"`
@@ -3794,7 +3845,7 @@ type SenderResponseContactDto struct {
 // SimplifiedResponseDto Транспорт с ошибками и предупреждениями
 type SimplifiedResponseDto struct {
 	// Errors Список ошибок
-	Errors *[]ErrorDto `json:"errors,omitempty"`
+	Errors *[]ErrorDto1 `json:"errors,omitempty"`
 }
 
 // SimplifiedResponseDto1 Транспорт с ошибками и предупреждениями
@@ -3823,25 +3874,25 @@ type SuggestCityResponseDto struct {
 
 // TariffCodeDto Тарифы
 type TariffCodeDto struct {
-	// CalendarMax Максимальное время доставки (в календарных днях)
+	// CalendarMax Максимальное время доставки (в календарных днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	CalendarMax interface{} `json:"calendar_max,omitempty"`
 
-	// CalendarMin Минимальное время доставки (в календарных днях)
+	// CalendarMin Минимальное время доставки (в календарных днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	CalendarMin interface{} `json:"calendar_min,omitempty"`
 
 	// DeliveryDateRange Прогнозируемый диапазон дат доставки. Для расчета дат используется производственный календарь. В зависимости от скорости тарифа учитываются или календарные, или рабочие дни. Если рабочие дни учитываются, то выходные и праздники пропускаются.
 	DeliveryDateRange *DeliveryDateRangeDto `json:"delivery_date_range,omitempty"`
 
-	// DeliveryMode Режим тарифа (справочник СДЭК)
+	// DeliveryMode Режим тарифа (Приложение 15)
 	DeliveryMode interface{} `json:"delivery_mode"`
 
-	// DeliverySum Стоимость доставки
+	// DeliverySum Базовая стоимость доставки без НДС и доп. услуг (НДС может быть включен в базовый тариф по условиям договора)
 	DeliverySum interface{} `json:"delivery_sum"`
 
-	// PeriodMax Максимальное время доставки (в рабочих днях)
+	// PeriodMax Максимальное время доставки (в рабочих днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	PeriodMax interface{} `json:"period_max"`
 
-	// PeriodMin Минимальное время доставки (в рабочих днях)
+	// PeriodMin Минимальное время доставки (в рабочих днях). Сроки доставки рассчитываются без учета дня принятия груза на складе.
 	PeriodMin interface{} `json:"period_min"`
 
 	// TariffCode Код тарифа. Обязателен для расчета по коду тарифа
@@ -3991,27 +4042,24 @@ type WaybillResponseRootEntityDto struct {
 
 // WebhookDto Вебхук
 type WebhookDto struct {
-	// Type Тип вебхука.<br>• ORDER_STATUS - событие по статусам;<br>• PRINT_FORM - готовность печатной формы;<br>• PREALERT_CLOSED - получение информации о закрытии преалерта;<br>• ACCOMPANYING_WAYBILL - получение информации о транспорте для СНТ;<br>• OFFICE_AVAILABILITY - получение информации об изменении доступности офиса;<br>• ORDER_MODIFIED - получение информации об изменении заказа;<br>• DELIV_AGREEMENT - получение информации об изменении договоренности о доставке;<br>• DELIV_PROBLEM - получение информации о проблемах доставки по заказу;<br>• COURIER_INFO - получение информации о курьере.<br>Если у клиента уже есть подписка с указанным типом, то будет создана еще одна подписка с таким же типом
-	Type WebhookDtoType `json:"type"`
+	// Type Тип вебхука.<br>• ORDER_STATUS - событие по статусам;<br>• PRINT_FORM - готовность печатной формы;<br>• PREALERT_CLOSED - получение информации о закрытии преалерта;<br>• ACCOMPANYING_WAYBILL - получение информации о транспорте для СНТ;<br>• OFFICE_AVAILABILITY - получение информации об изменении доступности офиса;<br>• ORDER_MODIFIED - получение информации об изменении заказа;<br>• DELIV_AGREEMENT - получение информации об изменении договоренности о доставке;<br>• DELIV_PROBLEM - получение информации о проблемах доставки по заказу;<br>• COURIER_INFO - получение информации о курьере;<br>• DOWNLOAD_PHOTO - получение фото документов по заказам.<br>Если у клиента уже есть подписка с указанным типом, то будет создана еще одна подписка с таким же типом
+	Type interface{} `json:"type"`
 
 	// Url URL, на который отправляется событие
-	Url string `json:"url"`
+	Url interface{} `json:"url"`
 
 	// Uuid Идентификатор вебхука
-	Uuid *openapi_types.UUID `json:"uuid,omitempty"`
+	Uuid interface{} `json:"uuid,omitempty"`
 }
-
-// WebhookDtoType Тип вебхука.<br>• ORDER_STATUS - событие по статусам;<br>• PRINT_FORM - готовность печатной формы;<br>• PREALERT_CLOSED - получение информации о закрытии преалерта;<br>• ACCOMPANYING_WAYBILL - получение информации о транспорте для СНТ;<br>• OFFICE_AVAILABILITY - получение информации об изменении доступности офиса;<br>• ORDER_MODIFIED - получение информации об изменении заказа;<br>• DELIV_AGREEMENT - получение информации об изменении договоренности о доставке;<br>• DELIV_PROBLEM - получение информации о проблемах доставки по заказу;<br>• COURIER_INFO - получение информации о курьере.<br>Если у клиента уже есть подписка с указанным типом, то будет создана еще одна подписка с таким же типом
-type WebhookDtoType string
 
 // WebhookResponseDto Вебхук
 type WebhookResponseDto struct {
 	// Uuid Идентификатор вебхука
-	Uuid *openapi_types.UUID `json:"uuid,omitempty"`
+	Uuid interface{} `json:"uuid,omitempty"`
 }
 
-// oauth2ContextKey is the context key for oauth2 security scheme
-type oauth2ContextKey string
+// bearerAuthContextKey is the context key for bearerAuth security scheme
+type bearerAuthContextKey string
 
 // AvailableTariffsParams defines parameters for AvailableTariffs.
 type AvailableTariffsParams struct {
@@ -4102,6 +4150,15 @@ type GetDeliverypointsParams struct {
 	// WeightMin Минимальный вес в кг, который принимает офис (при переданном значении будут выводиться офисы с минимальным весом до указанного значения)
 	WeightMin interface{} `form:"weight_min,omitempty" json:"weight_min,omitempty"`
 
+	// Length Длина грузоместа в см, планируемого к отправке. Фильтрация всегда допускает поворот груза, поэтому даже при одном переданном параметре (габарите груза) достаточно, чтобы хотя бы одно из трёх ограничений офиса было не меньше этого значения или отсутствовало. Если не передан ни один из параметров (length, width, height) - возвращается весь список офисов.
+	Length interface{} `form:"length,omitempty" json:"length,omitempty"`
+
+	// Width Ширина грузоместа в см, планируемого к отправке. Фильтрация всегда допускает поворот груза, поэтому даже при одном переданном параметре (габарите груза) достаточно, чтобы хотя бы одно из трёх ограничений офиса было не меньше этого значения или отсутствовало. Если не передан ни один из параметров (length, width, height) - возвращается весь список офисов.
+	Width interface{} `form:"width,omitempty" json:"width,omitempty"`
+
+	// Height Высота грузоместа в см, планируемого к отправке. Фильтрация всегда допускает поворот груза, поэтому даже при одном переданном параметре (габарите груза) достаточно, чтобы хотя бы одно из трёх ограничений офиса было не меньше этого значения или отсутствовало. Если не передан ни один из параметров (length, width, height) - возвращается весь список офисов.
+	Height interface{} `form:"height,omitempty" json:"height,omitempty"`
+
 	// Lang Локализация офиса.
 	Lang interface{} `form:"lang,omitempty" json:"lang,omitempty"`
 
@@ -4155,6 +4212,56 @@ type GetDeliverypointsParams struct {
 	Page interface{} `form:"page,omitempty" json:"page,omitempty"`
 }
 
+// ByPolygonsParams defines parameters for ByPolygons.
+type ByPolygonsParams struct {
+	// LatitudeRightTop Широта верхней правой точки прямоугольника (в формате 6 знаков после запятой). Может принимать значения в диапазоне [-90, 90].
+	LatitudeRightTop interface{} `form:"latitude_right_top" json:"latitude_right_top"`
+
+	// LongitudeRightTop Долгота верхней правой точки прямоугольника (в формате 6 знаков после запятой). Может принимать значения в диапазоне [-180, 180].
+	LongitudeRightTop interface{} `form:"longitude_right_top" json:"longitude_right_top"`
+
+	// LatitudeLeftBottom Широта нижней левой точки прямоугольника (в формате 6 знаков после запятой). Может принимать значения в диапазоне [-90, 90].
+	LatitudeLeftBottom interface{} `form:"latitude_left_bottom" json:"latitude_left_bottom"`
+
+	// LongitudeLeftBottom Долгота нижней левой точки прямоугольника (в формате 6 знаков после запятой). Может принимать значения в диапазоне [-180, 180].
+	LongitudeLeftBottom interface{} `form:"longitude_left_bottom" json:"longitude_left_bottom"`
+
+	// Type Тип офиса. Принимает значения "POSTAMAT", "PVZ", "ALL".
+	Type interface{} `form:"type,omitempty" json:"type,omitempty"`
+
+	// CityUuid Идентификатор города в ИС СДЭК
+	CityUuid interface{} `form:"city_uuid,omitempty" json:"city_uuid,omitempty"`
+
+	// HaveCashless Наличие терминала оплаты. Может принимать значения:<br>
+	// «1», «true» - есть;<br>
+	// «0», «false» - нет.
+	HaveCashless interface{} `form:"have_cashless,omitempty" json:"have_cashless,omitempty"`
+
+	// HaveCash Есть прием наличных. Может принимать значения:<br>
+	// «1», «true» - есть;<br>
+	// «0», «false» - нет.
+	HaveCash interface{} `form:"have_cash,omitempty" json:"have_cash,omitempty"`
+
+	// AllowedCod Разрешен наложенный платеж. Может принимать значения:<br>
+	// «1», «true» - есть;<br>
+	// «0», «false» - нет.
+	AllowedCod interface{} `form:"allowed_cod,omitempty" json:"allowed_cod,omitempty"`
+
+	// IsDressingRoom Наличие примерочной. Может принимать значения:<br>
+	// «1», «true» - есть;<br>
+	// «0», «false» - нет.
+	IsDressingRoom interface{} `form:"is_dressing_room,omitempty" json:"is_dressing_room,omitempty"`
+
+	// WeightMax Максимальный вес в кг, который может принять офис (значения больше 0 - передаются офисы, которые принимают этот вес; 0 - офисы с нулевым весом не передаются; значение не указано - все офисы)
+	WeightMax interface{} `form:"weight_max,omitempty" json:"weight_max,omitempty"`
+
+	// WeightMin Минимальный вес в кг, который принимает офис (при переданном значении будут выводиться офисы с минимальным весом до указанного значения)
+	WeightMin interface{} `form:"weight_min,omitempty" json:"weight_min,omitempty"`
+
+	// Lang Локализация офиса.
+	Lang interface{} `form:"lang,omitempty" json:"lang,omitempty"`
+}
+
 // CitiesParams defines parameters for Cities.
 type CitiesParams struct {
 	// CountryCodes Массив кодов стран в формате ISO_3166-1_alpha-2
@@ -4163,10 +4270,7 @@ type CitiesParams struct {
 	// RegionCode Код региона (справочник СДЭК)
 	RegionCode *int32 `form:"region_code,omitempty" json:"region_code,omitempty"`
 
-	// KladrRegionCode Код КЛАДР региона
-	KladrRegionCode *string `form:"kladr_region_code,omitempty" json:"kladr_region_code,omitempty"`
-
-	// FiasRegionGuid Уникальный идентификатор ФИАС региона. Устаревшее поле
+	// FiasRegionGuid Уникальный идентификатор ФИАС региона. Устаревшее поле - значения могут быть не актуальны
 	FiasRegionGuid *openapi_types.UUID `form:"fias_region_guid,omitempty" json:"fias_region_guid,omitempty"`
 
 	// KladrCode Код КЛАДР населенного пункта
@@ -4208,8 +4312,8 @@ type GetCityByCoordinatesParams struct {
 
 // PostalcodesParams defines parameters for Postalcodes.
 type PostalcodesParams struct {
-	// CityCode Код города, которому принадлежат почтовые индексы
-	CityCode int32 `form:"city_code" json:"city_code"`
+	// Code Код города, которому принадлежат почтовые индексы
+	Code int32 `form:"code" json:"code"`
 }
 
 // RegionsParams defines parameters for Regions.
@@ -4217,7 +4321,7 @@ type RegionsParams struct {
 	// CountryCodes Список кодов стран в формате ISO_3166-1_alpha-2
 	CountryCodes *string `form:"country_codes,omitempty" json:"country_codes,omitempty"`
 
-	// FiasRegionGuid Уникальный идентификатор ФИАС региона. Устаревшее поле
+	// FiasRegionGuid Уникальный идентификатор ФИАС региона. Устаревшее поле - значения могут быть не актуальны
 	FiasRegionGuid *openapi_types.UUID `form:"fias_region_guid,omitempty" json:"fias_region_guid,omitempty"`
 
 	// Size Ограничение выборки результата. По умолчанию 1000. Обязателен, если указан page
@@ -4239,18 +4343,17 @@ type SuggestCitiesParams struct {
 	CountryCode *string `form:"country_code,omitempty" json:"country_code,omitempty"`
 }
 
-// GetOAuthTokenFormdataBody defines parameters for GetOAuthToken.
-type GetOAuthTokenFormdataBody struct {
-	// ClientId Client ID
+// GetOAuthTokenParams defines parameters for GetOAuthToken.
+type GetOAuthTokenParams struct {
+	// GrantType Тип аутентификации. Доступное значение: client_credentials
+	GrantType string `form:"grant_type" json:"grant_type"`
+
+	// ClientId Идентификатор клиента
 	ClientId string `form:"client_id" json:"client_id"`
 
-	// ClientSecret Client Secret
-	ClientSecret string                             `form:"client_secret" json:"client_secret"`
-	GrantType    GetOAuthTokenFormdataBodyGrantType `form:"grant_type" json:"grant_type"`
+	// ClientSecret Секретный ключ клиента
+	ClientSecret string `form:"client_secret" json:"client_secret"`
 }
-
-// GetOAuthTokenFormdataBodyGrantType defines parameters for GetOAuthToken.
-type GetOAuthTokenFormdataBodyGrantType string
 
 // GetOrdersParams defines parameters for GetOrders.
 type GetOrdersParams struct {
@@ -4290,20 +4393,65 @@ type GetPassportParams struct {
 	Client interface{} `form:"client,omitempty" json:"client,omitempty"`
 }
 
-// GetPaymentParams defines parameters for GetPayment.
-type GetPaymentParams struct {
-	// Date Дата, за которую необходимо вернуть список заказов, по которым был переведен наложенный платеж
-	Date interface{} `form:"date" json:"date"`
-}
-
 // GetRegistriesParams defines parameters for GetRegistries.
 type GetRegistriesParams struct {
 	// Date Дата, за которую необходимо вернуть реестры наложенных платежей, по которым был переведен наложенный платеж.
 	Date interface{} `form:"date" json:"date"`
 }
 
-// GetOAuthTokenFormdataRequestBody defines body for GetOAuthToken for application/x-www-form-urlencoded ContentType.
-type GetOAuthTokenFormdataRequestBody GetOAuthTokenFormdataBody
+// TariffJSONRequestBody defines body for Tariff for application/json ContentType.
+type TariffJSONRequestBody = CalculatorRequestDto
+
+// TariffWithServicesJSONRequestBody defines body for TariffWithServices for application/json ContentType.
+type TariffWithServicesJSONRequestBody = CalculatorTariffWithServicesRequestDto
+
+// TariffListJSONRequestBody defines body for TariffList for application/json ContentType.
+type TariffListJSONRequestBody = CalculatorTariffListRequestDto
+
+// CreateDeliveryJSONRequestBody defines body for CreateDelivery for application/json ContentType.
+type CreateDeliveryJSONRequestBody = ScheduleDto
+
+// GetEstimatedIntervalsJSONRequestBody defines body for GetEstimatedIntervals for application/json ContentType.
+type GetEstimatedIntervalsJSONRequestBody = EstimatedDeliveryIntervalsRequestDto
+
+// ChangeStatusJSONRequestBody defines body for ChangeStatus for application/json ContentType.
+type ChangeStatusJSONRequestBody = IntakeChangeStatusDto
+
+// CreateIntakeJSONRequestBody defines body for CreateIntake for application/json ContentType.
+type CreateIntakeJSONRequestBody = IntakeDto
+
+// GetAvailableDaysJSONRequestBody defines body for GetAvailableDays for application/json ContentType.
+type GetAvailableDaysJSONRequestBody = IntakeAvailableDaysRequestDto
+
+// CheckPackagesRestrictionsJSONRequestBody defines body for CheckPackagesRestrictions for application/json ContentType.
+type CheckPackagesRestrictionsJSONRequestBody = RestrictionHintsRequestDto
+
+// UpdateJSONRequestBody defines body for Update for application/json ContentType.
+type UpdateJSONRequestBody = OrderUpdateRequestDto
+
+// CreateOrderJSONRequestBody defines body for CreateOrder for application/json ContentType.
+type CreateOrderJSONRequestBody = OrderCreateRequestDto
+
+// ClientReturnJSONRequestBody defines body for ClientReturn for application/json ContentType.
+type ClientReturnJSONRequestBody = CreateClientReturnRequestDto
+
+// GetReadyOrdersJSONRequestBody defines body for GetReadyOrders for application/json ContentType.
+type GetReadyOrdersJSONRequestBody = PhotoRequestDto
+
+// RegisterJSONRequestBody defines body for Register for application/json ContentType.
+type RegisterJSONRequestBody = RegisterPrealertRequestDto
+
+// BarcodePrintJSONRequestBody defines body for BarcodePrint for application/json ContentType.
+type BarcodePrintJSONRequestBody = BarcodeRequestDto
+
+// WaybillPrintJSONRequestBody defines body for WaybillPrint for application/json ContentType.
+type WaybillPrintJSONRequestBody = WaybillRequestDto
+
+// CheckAvailabilityJSONRequestBody defines body for CheckAvailability for application/json ContentType.
+type CheckAvailabilityJSONRequestBody = ReverseValidateRequestDto
+
+// CreateV2WebhooksJSONRequestBody defines body for CreateV2Webhooks for application/json ContentType.
+type CreateV2WebhooksJSONRequestBody = WebhookDto
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -4384,11 +4532,17 @@ type ClientInterface interface {
 	// TariffWithBody request with any body
 	TariffWithBody(ctx context.Context, params *TariffParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	Tariff(ctx context.Context, params *TariffParams, body TariffJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// TariffWithServicesWithBody request with any body
 	TariffWithServicesWithBody(ctx context.Context, params *TariffWithServicesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	TariffWithServices(ctx context.Context, params *TariffWithServicesParams, body TariffWithServicesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// TariffListWithBody request with any body
 	TariffListWithBody(ctx context.Context, params *TariffListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	TariffList(ctx context.Context, params *TariffListParams, body TariffListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetCheck request
 	GetCheck(ctx context.Context, params *GetCheckParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4396,8 +4550,12 @@ type ClientInterface interface {
 	// CreateDeliveryWithBody request with any body
 	CreateDeliveryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	CreateDelivery(ctx context.Context, body CreateDeliveryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetEstimatedIntervalsWithBody request with any body
 	GetEstimatedIntervalsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	GetEstimatedIntervals(ctx context.Context, body GetEstimatedIntervalsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetIntervals request
 	GetIntervals(ctx context.Context, params *GetIntervalsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4408,14 +4566,23 @@ type ClientInterface interface {
 	// GetDeliverypoints request
 	GetDeliverypoints(ctx context.Context, params *GetDeliverypointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ByPolygons request
+	ByPolygons(ctx context.Context, params *ByPolygonsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ChangeStatusWithBody request with any body
 	ChangeStatusWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ChangeStatus(ctx context.Context, body ChangeStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateIntakeWithBody request with any body
 	CreateIntakeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	CreateIntake(ctx context.Context, body CreateIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAvailableDaysWithBody request with any body
 	GetAvailableDaysWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	GetAvailableDays(ctx context.Context, body GetAvailableDaysJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteByUuid request
 	DeleteByUuid(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4425,6 +4592,8 @@ type ClientInterface interface {
 
 	// CheckPackagesRestrictionsWithBody request with any body
 	CheckPackagesRestrictionsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CheckPackagesRestrictions(ctx context.Context, body CheckPackagesRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Cities request
 	Cities(ctx context.Context, params *CitiesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4441,10 +4610,8 @@ type ClientInterface interface {
 	// SuggestCities request
 	SuggestCities(ctx context.Context, params *SuggestCitiesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetOAuthTokenWithBody request with any body
-	GetOAuthTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetOAuthTokenWithFormdataBody(ctx context.Context, body GetOAuthTokenFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetOAuthToken request
+	GetOAuthToken(ctx context.Context, params *GetOAuthTokenParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetOrders request
 	GetOrders(ctx context.Context, params *GetOrdersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4452,8 +4619,12 @@ type ClientInterface interface {
 	// UpdateWithBody request with any body
 	UpdateWithBody(ctx context.Context, params *UpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	Update(ctx context.Context, params *UpdateParams, body UpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CreateOrderWithBody request with any body
 	CreateOrderWithBody(ctx context.Context, params *CreateOrderParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateOrder(ctx context.Context, params *CreateOrderParams, body CreateOrderJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetIntakes request
 	GetIntakes(ctx context.Context, orderUuid interface{}, params *GetIntakesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4467,26 +4638,34 @@ type ClientInterface interface {
 	// ClientReturnWithBody request with any body
 	ClientReturnWithBody(ctx context.Context, uuid interface{}, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	ClientReturn(ctx context.Context, uuid interface{}, body ClientReturnJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// Refuse request
 	Refuse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPassport request
 	GetPassport(ctx context.Context, params *GetPassportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetPayment request
-	GetPayment(ctx context.Context, params *GetPaymentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetReadyOrdersWithBody request with any body
 	GetReadyOrdersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	GetReadyOrders(ctx context.Context, body GetReadyOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPhotoDocument request
+	GetPhotoDocument(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RegisterWithBody request with any body
 	RegisterWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	Register(ctx context.Context, body RegisterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPrealert request
 	GetPrealert(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BarcodePrintWithBody request with any body
 	BarcodePrintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	BarcodePrint(ctx context.Context, body BarcodePrintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BarcodeGet request
 	BarcodeGet(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4496,6 +4675,8 @@ type ClientInterface interface {
 
 	// WaybillPrintWithBody request with any body
 	WaybillPrintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	WaybillPrint(ctx context.Context, body WaybillPrintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// WaybillGet request
 	WaybillGet(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4509,17 +4690,21 @@ type ClientInterface interface {
 	// CheckAvailabilityWithBody request with any body
 	CheckAvailabilityWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	CheckAvailability(ctx context.Context, body CheckAvailabilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAll request
 	GetAll(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateV2WebhooksWithBody request with any body
 	CreateV2WebhooksWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	CreateV2Webhooks(ctx context.Context, body CreateV2WebhooksJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteById request
-	DeleteById(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteById(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetById request
-	GetById(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetById(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) AvailableTariffs(ctx context.Context, params *AvailableTariffsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -4546,6 +4731,18 @@ func (c *Client) TariffWithBody(ctx context.Context, params *TariffParams, conte
 	return c.Client.Do(req)
 }
 
+func (c *Client) Tariff(ctx context.Context, params *TariffParams, body TariffJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTariffRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) TariffWithServicesWithBody(ctx context.Context, params *TariffWithServicesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTariffWithServicesRequestWithBody(c.Server, params, contentType, body)
 	if err != nil {
@@ -4558,8 +4755,32 @@ func (c *Client) TariffWithServicesWithBody(ctx context.Context, params *TariffW
 	return c.Client.Do(req)
 }
 
+func (c *Client) TariffWithServices(ctx context.Context, params *TariffWithServicesParams, body TariffWithServicesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTariffWithServicesRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) TariffListWithBody(ctx context.Context, params *TariffListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTariffListRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) TariffList(ctx context.Context, params *TariffListParams, body TariffListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTariffListRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4594,8 +4815,32 @@ func (c *Client) CreateDeliveryWithBody(ctx context.Context, contentType string,
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateDelivery(ctx context.Context, body CreateDeliveryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDeliveryRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetEstimatedIntervalsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetEstimatedIntervalsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetEstimatedIntervals(ctx context.Context, body GetEstimatedIntervalsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetEstimatedIntervalsRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4642,8 +4887,32 @@ func (c *Client) GetDeliverypoints(ctx context.Context, params *GetDeliverypoint
 	return c.Client.Do(req)
 }
 
+func (c *Client) ByPolygons(ctx context.Context, params *ByPolygonsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewByPolygonsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ChangeStatusWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewChangeStatusRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ChangeStatus(ctx context.Context, body ChangeStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeStatusRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4666,8 +4935,32 @@ func (c *Client) CreateIntakeWithBody(ctx context.Context, contentType string, b
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateIntake(ctx context.Context, body CreateIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateIntakeRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetAvailableDaysWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAvailableDaysRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetAvailableDays(ctx context.Context, body GetAvailableDaysJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAvailableDaysRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4704,6 +4997,18 @@ func (c *Client) GetByUuid(ctx context.Context, uuid interface{}, reqEditors ...
 
 func (c *Client) CheckPackagesRestrictionsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCheckPackagesRestrictionsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CheckPackagesRestrictions(ctx context.Context, body CheckPackagesRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckPackagesRestrictionsRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4774,20 +5079,8 @@ func (c *Client) SuggestCities(ctx context.Context, params *SuggestCitiesParams,
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetOAuthTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetOAuthTokenRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetOAuthTokenWithFormdataBody(ctx context.Context, body GetOAuthTokenFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetOAuthTokenRequestWithFormdataBody(c.Server, body)
+func (c *Client) GetOAuthToken(ctx context.Context, params *GetOAuthTokenParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetOAuthTokenRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4822,8 +5115,32 @@ func (c *Client) UpdateWithBody(ctx context.Context, params *UpdateParams, conte
 	return c.Client.Do(req)
 }
 
+func (c *Client) Update(ctx context.Context, params *UpdateParams, body UpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) CreateOrderWithBody(ctx context.Context, params *CreateOrderParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateOrderRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, body CreateOrderJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateOrderRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4882,6 +5199,18 @@ func (c *Client) ClientReturnWithBody(ctx context.Context, uuid interface{}, con
 	return c.Client.Do(req)
 }
 
+func (c *Client) ClientReturn(ctx context.Context, uuid interface{}, body ClientReturnJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClientReturnRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) Refuse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRefuseRequest(c.Server, uuid)
 	if err != nil {
@@ -4906,18 +5235,6 @@ func (c *Client) GetPassport(ctx context.Context, params *GetPassportParams, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetPayment(ctx context.Context, params *GetPaymentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetPaymentRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) GetReadyOrdersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetReadyOrdersRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -4930,8 +5247,44 @@ func (c *Client) GetReadyOrdersWithBody(ctx context.Context, contentType string,
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetReadyOrders(ctx context.Context, body GetReadyOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetReadyOrdersRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetPhotoDocument(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPhotoDocumentRequest(c.Server, uuid)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) RegisterWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRegisterRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) Register(ctx context.Context, body RegisterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4956,6 +5309,18 @@ func (c *Client) GetPrealert(ctx context.Context, uuid interface{}, reqEditors .
 
 func (c *Client) BarcodePrintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBarcodePrintRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) BarcodePrint(ctx context.Context, body BarcodePrintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBarcodePrintRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4992,6 +5357,18 @@ func (c *Client) BarcodeDownload(ctx context.Context, uuid interface{}, reqEdito
 
 func (c *Client) WaybillPrintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewWaybillPrintRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) WaybillPrint(ctx context.Context, body WaybillPrintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWaybillPrintRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5050,6 +5427,18 @@ func (c *Client) CheckAvailabilityWithBody(ctx context.Context, contentType stri
 	return c.Client.Do(req)
 }
 
+func (c *Client) CheckAvailability(ctx context.Context, body CheckAvailabilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckAvailabilityRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetAll(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAllRequest(c.Server)
 	if err != nil {
@@ -5074,7 +5463,19 @@ func (c *Client) CreateV2WebhooksWithBody(ctx context.Context, contentType strin
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteById(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateV2Webhooks(ctx context.Context, body CreateV2WebhooksJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateV2WebhooksRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteById(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteByIdRequest(c.Server, uuid)
 	if err != nil {
 		return nil, err
@@ -5086,7 +5487,7 @@ func (c *Client) DeleteById(ctx context.Context, uuid string, reqEditors ...Requ
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetById(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetById(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetByIdRequest(c.Server, uuid)
 	if err != nil {
 		return nil, err
@@ -5147,6 +5548,17 @@ func NewAvailableTariffsRequest(server string, params *AvailableTariffsParams) (
 	return req, nil
 }
 
+// NewTariffRequest calls the generic Tariff builder with application/json body
+func NewTariffRequest(server string, params *TariffParams, body TariffJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTariffRequestWithBody(server, params, "application/json", bodyReader)
+}
+
 // NewTariffRequestWithBody generates requests for Tariff with any type of body
 func NewTariffRequestWithBody(server string, params *TariffParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -5189,6 +5601,17 @@ func NewTariffRequestWithBody(server string, params *TariffParams, contentType s
 	return req, nil
 }
 
+// NewTariffWithServicesRequest calls the generic TariffWithServices builder with application/json body
+func NewTariffWithServicesRequest(server string, params *TariffWithServicesParams, body TariffWithServicesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTariffWithServicesRequestWithBody(server, params, "application/json", bodyReader)
+}
+
 // NewTariffWithServicesRequestWithBody generates requests for TariffWithServices with any type of body
 func NewTariffWithServicesRequestWithBody(server string, params *TariffWithServicesParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -5229,6 +5652,17 @@ func NewTariffWithServicesRequestWithBody(server string, params *TariffWithServi
 	}
 
 	return req, nil
+}
+
+// NewTariffListRequest calls the generic TariffList builder with application/json body
+func NewTariffListRequest(server string, params *TariffListParams, body TariffListJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTariffListRequestWithBody(server, params, "application/json", bodyReader)
 }
 
 // NewTariffListRequestWithBody generates requests for TariffList with any type of body
@@ -5339,6 +5773,17 @@ func NewGetCheckRequest(server string, params *GetCheckParams) (*http.Request, e
 	return req, nil
 }
 
+// NewCreateDeliveryRequest calls the generic CreateDelivery builder with application/json body
+func NewCreateDeliveryRequest(server string, body CreateDeliveryJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateDeliveryRequestWithBody(server, "application/json", bodyReader)
+}
+
 // NewCreateDeliveryRequestWithBody generates requests for CreateDelivery with any type of body
 func NewCreateDeliveryRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -5366,6 +5811,17 @@ func NewCreateDeliveryRequestWithBody(server string, contentType string, body io
 	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
+}
+
+// NewGetEstimatedIntervalsRequest calls the generic GetEstimatedIntervals builder with application/json body
+func NewGetEstimatedIntervalsRequest(server string, body GetEstimatedIntervalsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewGetEstimatedIntervalsRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewGetEstimatedIntervalsRequestWithBody generates requests for GetEstimatedIntervals with any type of body
@@ -5613,6 +6069,30 @@ func NewGetDeliverypointsRequest(server string, params *GetDeliverypointsParams)
 			}
 		}
 
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "length", params.Length, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "int32"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "width", params.Width, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "int32"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "height", params.Height, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "int32"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
 		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "lang", params.Lang, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
 			return nil, err
 		} else {
@@ -5723,6 +6203,163 @@ func NewGetDeliverypointsRequest(server string, params *GetDeliverypointsParams)
 	return req, nil
 }
 
+// NewByPolygonsRequest generates requests for ByPolygons
+func NewByPolygonsRequest(server string, params *ByPolygonsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/deliverypoints/byPolygons")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "latitude_right_top", params.LatitudeRightTop, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "double"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "longitude_right_top", params.LongitudeRightTop, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "double"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "latitude_left_bottom", params.LatitudeLeftBottom, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "double"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "longitude_left_bottom", params.LongitudeLeftBottom, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "double"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "type", params.Type, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "city_uuid", params.CityUuid, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "have_cashless", params.HaveCashless, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "have_cash", params.HaveCash, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "allowed_cod", params.AllowedCod, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "is_dressing_room", params.IsDressingRoom, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "weight_max", params.WeightMax, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "int32"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "weight_min", params.WeightMin, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "int32"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "lang", params.Lang, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewChangeStatusRequest calls the generic ChangeStatus builder with application/json body
+func NewChangeStatusRequest(server string, body ChangeStatusJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewChangeStatusRequestWithBody(server, "application/json", bodyReader)
+}
+
 // NewChangeStatusRequestWithBody generates requests for ChangeStatus with any type of body
 func NewChangeStatusRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -5752,6 +6389,17 @@ func NewChangeStatusRequestWithBody(server string, contentType string, body io.R
 	return req, nil
 }
 
+// NewCreateIntakeRequest calls the generic CreateIntake builder with application/json body
+func NewCreateIntakeRequest(server string, body CreateIntakeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateIntakeRequestWithBody(server, "application/json", bodyReader)
+}
+
 // NewCreateIntakeRequestWithBody generates requests for CreateIntake with any type of body
 func NewCreateIntakeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -5779,6 +6427,17 @@ func NewCreateIntakeRequestWithBody(server string, contentType string, body io.R
 	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
+}
+
+// NewGetAvailableDaysRequest calls the generic GetAvailableDays builder with application/json body
+func NewGetAvailableDaysRequest(server string, body GetAvailableDaysJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewGetAvailableDaysRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewGetAvailableDaysRequestWithBody generates requests for GetAvailableDays with any type of body
@@ -5878,6 +6537,17 @@ func NewGetByUuidRequest(server string, uuid interface{}) (*http.Request, error)
 	return req, nil
 }
 
+// NewCheckPackagesRestrictionsRequest calls the generic CheckPackagesRestrictions builder with application/json body
+func NewCheckPackagesRestrictionsRequest(server string, body CheckPackagesRestrictionsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCheckPackagesRestrictionsRequestWithBody(server, "application/json", bodyReader)
+}
+
 // NewCheckPackagesRestrictionsRequestWithBody generates requests for CheckPackagesRestrictions with any type of body
 func NewCheckPackagesRestrictionsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -5950,18 +6620,6 @@ func NewCitiesRequest(server string, params *CitiesParams) (*http.Request, error
 		if params.RegionCode != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region_code", *params.RegionCode, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.KladrRegionCode != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kladr_region_code", *params.KladrRegionCode, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -6191,7 +6849,7 @@ func NewPostalcodesRequest(server string, params *PostalcodesParams) (*http.Requ
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "city_code", params.CityCode, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "code", params.Code, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
 			return nil, err
 		} else {
 			for _, qp := range strings.Split(queryFrag, "&") {
@@ -6377,19 +7035,8 @@ func NewSuggestCitiesRequest(server string, params *SuggestCitiesParams) (*http.
 	return req, nil
 }
 
-// NewGetOAuthTokenRequestWithFormdataBody calls the generic GetOAuthToken builder with application/x-www-form-urlencoded body
-func NewGetOAuthTokenRequestWithFormdataBody(server string, body GetOAuthTokenFormdataRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	bodyStr, err := runtime.MarshalForm(body, nil)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewGetOAuthTokenRequestWithBody(server, "application/x-www-form-urlencoded", bodyReader)
-}
-
-// NewGetOAuthTokenRequestWithBody generates requests for GetOAuthToken with any type of body
-func NewGetOAuthTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetOAuthTokenRequest generates requests for GetOAuthToken
+func NewGetOAuthTokenRequest(server string, params *GetOAuthTokenParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -6407,12 +7054,49 @@ func NewGetOAuthTokenRequestWithBody(server string, contentType string, body io.
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "grant_type", params.GrantType, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "client_id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "client_secret", params.ClientSecret, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -6475,6 +7159,17 @@ func NewGetOrdersRequest(server string, params *GetOrdersParams) (*http.Request,
 	return req, nil
 }
 
+// NewUpdateRequest calls the generic Update builder with application/json body
+func NewUpdateRequest(server string, params *UpdateParams, body UpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
 // NewUpdateRequestWithBody generates requests for Update with any type of body
 func NewUpdateRequestWithBody(server string, params *UpdateParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -6515,6 +7210,17 @@ func NewUpdateRequestWithBody(server string, params *UpdateParams, contentType s
 	}
 
 	return req, nil
+}
+
+// NewCreateOrderRequest calls the generic CreateOrder builder with application/json body
+func NewCreateOrderRequest(server string, params *CreateOrderParams, body CreateOrderJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateOrderRequestWithBody(server, params, "application/json", bodyReader)
 }
 
 // NewCreateOrderRequestWithBody generates requests for CreateOrder with any type of body
@@ -6684,6 +7390,17 @@ func NewGetOrderRequest(server string, uuid interface{}) (*http.Request, error) 
 	return req, nil
 }
 
+// NewClientReturnRequest calls the generic ClientReturn builder with application/json body
+func NewClientReturnRequest(server string, uuid interface{}, body ClientReturnJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewClientReturnRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
 // NewClientReturnRequestWithBody generates requests for ClientReturn with any type of body
 func NewClientReturnRequestWithBody(server string, uuid interface{}, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -6820,54 +7537,15 @@ func NewGetPassportRequest(server string, params *GetPassportParams) (*http.Requ
 	return req, nil
 }
 
-// NewGetPaymentRequest generates requests for GetPayment
-func NewGetPaymentRequest(server string, params *GetPaymentParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
+// NewGetReadyOrdersRequest calls the generic GetReadyOrders builder with application/json body
+func NewGetReadyOrdersRequest(server string, body GetReadyOrdersJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
-
-	operationPath := fmt.Sprintf("/v2/payment")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "date", params.Date, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "", Format: "date"}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
-			}
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
+	bodyReader = bytes.NewReader(buf)
+	return NewGetReadyOrdersRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewGetReadyOrdersRequestWithBody generates requests for GetReadyOrders with any type of body
@@ -6897,6 +7575,51 @@ func NewGetReadyOrdersRequestWithBody(server string, contentType string, body io
 	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
+}
+
+// NewGetPhotoDocumentRequest generates requests for GetPhotoDocument
+func NewGetPhotoDocumentRequest(server string, uuid interface{}) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "uuid", uuid, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/photoDocument/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRegisterRequest calls the generic Register builder with application/json body
+func NewRegisterRequest(server string, body RegisterJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRegisterRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewRegisterRequestWithBody generates requests for Register with any type of body
@@ -6960,6 +7683,17 @@ func NewGetPrealertRequest(server string, uuid interface{}) (*http.Request, erro
 	}
 
 	return req, nil
+}
+
+// NewBarcodePrintRequest calls the generic BarcodePrint builder with application/json body
+func NewBarcodePrintRequest(server string, body BarcodePrintJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBarcodePrintRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewBarcodePrintRequestWithBody generates requests for BarcodePrint with any type of body
@@ -7057,6 +7791,17 @@ func NewBarcodeDownloadRequest(server string, uuid interface{}) (*http.Request, 
 	}
 
 	return req, nil
+}
+
+// NewWaybillPrintRequest calls the generic WaybillPrint builder with application/json body
+func NewWaybillPrintRequest(server string, body WaybillPrintJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewWaybillPrintRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewWaybillPrintRequestWithBody generates requests for WaybillPrint with any type of body
@@ -7206,6 +7951,17 @@ func NewGetRegistriesRequest(server string, params *GetRegistriesParams) (*http.
 	return req, nil
 }
 
+// NewCheckAvailabilityRequest calls the generic CheckAvailability builder with application/json body
+func NewCheckAvailabilityRequest(server string, body CheckAvailabilityJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCheckAvailabilityRequestWithBody(server, "application/json", bodyReader)
+}
+
 // NewCheckAvailabilityRequestWithBody generates requests for CheckAvailability with any type of body
 func NewCheckAvailabilityRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -7262,6 +8018,17 @@ func NewGetAllRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewCreateV2WebhooksRequest calls the generic CreateV2Webhooks builder with application/json body
+func NewCreateV2WebhooksRequest(server string, body CreateV2WebhooksJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateV2WebhooksRequestWithBody(server, "application/json", bodyReader)
+}
+
 // NewCreateV2WebhooksRequestWithBody generates requests for CreateV2Webhooks with any type of body
 func NewCreateV2WebhooksRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -7292,12 +8059,12 @@ func NewCreateV2WebhooksRequestWithBody(server string, contentType string, body 
 }
 
 // NewDeleteByIdRequest generates requests for DeleteById
-func NewDeleteByIdRequest(server string, uuid string) (*http.Request, error) {
+func NewDeleteByIdRequest(server string, uuid interface{}) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "uuid", uuid, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "uuid", uuid, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7326,12 +8093,12 @@ func NewDeleteByIdRequest(server string, uuid string) (*http.Request, error) {
 }
 
 // NewGetByIdRequest generates requests for GetById
-func NewGetByIdRequest(server string, uuid string) (*http.Request, error) {
+func NewGetByIdRequest(server string, uuid interface{}) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "uuid", uuid, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "uuid", uuid, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7408,11 +8175,17 @@ type ClientWithResponsesInterface interface {
 	// TariffWithBodyWithResponse request with any body
 	TariffWithBodyWithResponse(ctx context.Context, params *TariffParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TariffResponse, error)
 
+	TariffWithResponse(ctx context.Context, params *TariffParams, body TariffJSONRequestBody, reqEditors ...RequestEditorFn) (*TariffResponse, error)
+
 	// TariffWithServicesWithBodyWithResponse request with any body
 	TariffWithServicesWithBodyWithResponse(ctx context.Context, params *TariffWithServicesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TariffWithServicesResponse, error)
 
+	TariffWithServicesWithResponse(ctx context.Context, params *TariffWithServicesParams, body TariffWithServicesJSONRequestBody, reqEditors ...RequestEditorFn) (*TariffWithServicesResponse, error)
+
 	// TariffListWithBodyWithResponse request with any body
 	TariffListWithBodyWithResponse(ctx context.Context, params *TariffListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TariffListResponse, error)
+
+	TariffListWithResponse(ctx context.Context, params *TariffListParams, body TariffListJSONRequestBody, reqEditors ...RequestEditorFn) (*TariffListResponse, error)
 
 	// GetCheckWithResponse request
 	GetCheckWithResponse(ctx context.Context, params *GetCheckParams, reqEditors ...RequestEditorFn) (*GetCheckResponse, error)
@@ -7420,8 +8193,12 @@ type ClientWithResponsesInterface interface {
 	// CreateDeliveryWithBodyWithResponse request with any body
 	CreateDeliveryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDeliveryResponse, error)
 
+	CreateDeliveryWithResponse(ctx context.Context, body CreateDeliveryJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDeliveryResponse, error)
+
 	// GetEstimatedIntervalsWithBodyWithResponse request with any body
 	GetEstimatedIntervalsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetEstimatedIntervalsResponse, error)
+
+	GetEstimatedIntervalsWithResponse(ctx context.Context, body GetEstimatedIntervalsJSONRequestBody, reqEditors ...RequestEditorFn) (*GetEstimatedIntervalsResponse, error)
 
 	// GetIntervalsWithResponse request
 	GetIntervalsWithResponse(ctx context.Context, params *GetIntervalsParams, reqEditors ...RequestEditorFn) (*GetIntervalsResponse, error)
@@ -7432,14 +8209,23 @@ type ClientWithResponsesInterface interface {
 	// GetDeliverypointsWithResponse request
 	GetDeliverypointsWithResponse(ctx context.Context, params *GetDeliverypointsParams, reqEditors ...RequestEditorFn) (*GetDeliverypointsResponse, error)
 
+	// ByPolygonsWithResponse request
+	ByPolygonsWithResponse(ctx context.Context, params *ByPolygonsParams, reqEditors ...RequestEditorFn) (*ByPolygonsResponse, error)
+
 	// ChangeStatusWithBodyWithResponse request with any body
 	ChangeStatusWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeStatusResponse, error)
+
+	ChangeStatusWithResponse(ctx context.Context, body ChangeStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeStatusResponse, error)
 
 	// CreateIntakeWithBodyWithResponse request with any body
 	CreateIntakeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateIntakeResponse, error)
 
+	CreateIntakeWithResponse(ctx context.Context, body CreateIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateIntakeResponse, error)
+
 	// GetAvailableDaysWithBodyWithResponse request with any body
 	GetAvailableDaysWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetAvailableDaysResponse, error)
+
+	GetAvailableDaysWithResponse(ctx context.Context, body GetAvailableDaysJSONRequestBody, reqEditors ...RequestEditorFn) (*GetAvailableDaysResponse, error)
 
 	// DeleteByUuidWithResponse request
 	DeleteByUuidWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*DeleteByUuidResponse, error)
@@ -7449,6 +8235,8 @@ type ClientWithResponsesInterface interface {
 
 	// CheckPackagesRestrictionsWithBodyWithResponse request with any body
 	CheckPackagesRestrictionsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckPackagesRestrictionsResponse, error)
+
+	CheckPackagesRestrictionsWithResponse(ctx context.Context, body CheckPackagesRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckPackagesRestrictionsResponse, error)
 
 	// CitiesWithResponse request
 	CitiesWithResponse(ctx context.Context, params *CitiesParams, reqEditors ...RequestEditorFn) (*CitiesResponse, error)
@@ -7465,10 +8253,8 @@ type ClientWithResponsesInterface interface {
 	// SuggestCitiesWithResponse request
 	SuggestCitiesWithResponse(ctx context.Context, params *SuggestCitiesParams, reqEditors ...RequestEditorFn) (*SuggestCitiesResponse, error)
 
-	// GetOAuthTokenWithBodyWithResponse request with any body
-	GetOAuthTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetOAuthTokenResponse, error)
-
-	GetOAuthTokenWithFormdataBodyWithResponse(ctx context.Context, body GetOAuthTokenFormdataRequestBody, reqEditors ...RequestEditorFn) (*GetOAuthTokenResponse, error)
+	// GetOAuthTokenWithResponse request
+	GetOAuthTokenWithResponse(ctx context.Context, params *GetOAuthTokenParams, reqEditors ...RequestEditorFn) (*GetOAuthTokenResponse, error)
 
 	// GetOrdersWithResponse request
 	GetOrdersWithResponse(ctx context.Context, params *GetOrdersParams, reqEditors ...RequestEditorFn) (*GetOrdersResponse, error)
@@ -7476,8 +8262,12 @@ type ClientWithResponsesInterface interface {
 	// UpdateWithBodyWithResponse request with any body
 	UpdateWithBodyWithResponse(ctx context.Context, params *UpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateResponse, error)
 
+	UpdateWithResponse(ctx context.Context, params *UpdateParams, body UpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateResponse, error)
+
 	// CreateOrderWithBodyWithResponse request with any body
 	CreateOrderWithBodyWithResponse(ctx context.Context, params *CreateOrderParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateOrderResponse, error)
+
+	CreateOrderWithResponse(ctx context.Context, params *CreateOrderParams, body CreateOrderJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateOrderResponse, error)
 
 	// GetIntakesWithResponse request
 	GetIntakesWithResponse(ctx context.Context, orderUuid interface{}, params *GetIntakesParams, reqEditors ...RequestEditorFn) (*GetIntakesResponse, error)
@@ -7491,26 +8281,34 @@ type ClientWithResponsesInterface interface {
 	// ClientReturnWithBodyWithResponse request with any body
 	ClientReturnWithBodyWithResponse(ctx context.Context, uuid interface{}, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ClientReturnResponse, error)
 
+	ClientReturnWithResponse(ctx context.Context, uuid interface{}, body ClientReturnJSONRequestBody, reqEditors ...RequestEditorFn) (*ClientReturnResponse, error)
+
 	// RefuseWithResponse request
 	RefuseWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*RefuseResponse, error)
 
 	// GetPassportWithResponse request
 	GetPassportWithResponse(ctx context.Context, params *GetPassportParams, reqEditors ...RequestEditorFn) (*GetPassportResponse, error)
 
-	// GetPaymentWithResponse request
-	GetPaymentWithResponse(ctx context.Context, params *GetPaymentParams, reqEditors ...RequestEditorFn) (*GetPaymentResponse, error)
-
 	// GetReadyOrdersWithBodyWithResponse request with any body
 	GetReadyOrdersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetReadyOrdersResponse, error)
 
+	GetReadyOrdersWithResponse(ctx context.Context, body GetReadyOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*GetReadyOrdersResponse, error)
+
+	// GetPhotoDocumentWithResponse request
+	GetPhotoDocumentWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*GetPhotoDocumentResponse, error)
+
 	// RegisterWithBodyWithResponse request with any body
 	RegisterWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterResponse, error)
+
+	RegisterWithResponse(ctx context.Context, body RegisterJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterResponse, error)
 
 	// GetPrealertWithResponse request
 	GetPrealertWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*GetPrealertResponse, error)
 
 	// BarcodePrintWithBodyWithResponse request with any body
 	BarcodePrintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BarcodePrintResponse, error)
+
+	BarcodePrintWithResponse(ctx context.Context, body BarcodePrintJSONRequestBody, reqEditors ...RequestEditorFn) (*BarcodePrintResponse, error)
 
 	// BarcodeGetWithResponse request
 	BarcodeGetWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*BarcodeGetResponse, error)
@@ -7520,6 +8318,8 @@ type ClientWithResponsesInterface interface {
 
 	// WaybillPrintWithBodyWithResponse request with any body
 	WaybillPrintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*WaybillPrintResponse, error)
+
+	WaybillPrintWithResponse(ctx context.Context, body WaybillPrintJSONRequestBody, reqEditors ...RequestEditorFn) (*WaybillPrintResponse, error)
 
 	// WaybillGetWithResponse request
 	WaybillGetWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*WaybillGetResponse, error)
@@ -7533,22 +8333,28 @@ type ClientWithResponsesInterface interface {
 	// CheckAvailabilityWithBodyWithResponse request with any body
 	CheckAvailabilityWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckAvailabilityResponse, error)
 
+	CheckAvailabilityWithResponse(ctx context.Context, body CheckAvailabilityJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckAvailabilityResponse, error)
+
 	// GetAllWithResponse request
 	GetAllWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAllResponse, error)
 
 	// CreateV2WebhooksWithBodyWithResponse request with any body
 	CreateV2WebhooksWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateV2WebhooksResponse, error)
 
+	CreateV2WebhooksWithResponse(ctx context.Context, body CreateV2WebhooksJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateV2WebhooksResponse, error)
+
 	// DeleteByIdWithResponse request
-	DeleteByIdWithResponse(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*DeleteByIdResponse, error)
+	DeleteByIdWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*DeleteByIdResponse, error)
 
 	// GetByIdWithResponse request
-	GetByIdWithResponse(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*GetByIdResponse, error)
+	GetByIdWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*GetByIdResponse, error)
 }
 
 type AvailableTariffsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *CalculatorAvailableTariffsResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7578,6 +8384,8 @@ func (r AvailableTariffsResponse) ContentType() string {
 type TariffResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *CalculatorResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7607,6 +8415,8 @@ func (r TariffResponse) ContentType() string {
 type TariffWithServicesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *CalculatorTariffWithServicesListResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7636,6 +8446,8 @@ func (r TariffWithServicesResponse) ContentType() string {
 type TariffListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *CalculatorTariffListResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7665,6 +8477,8 @@ func (r TariffListResponse) ContentType() string {
 type GetCheckResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *CheckResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7694,6 +8508,8 @@ func (r GetCheckResponse) ContentType() string {
 type CreateDeliveryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7723,6 +8539,8 @@ func (r CreateDeliveryResponse) ContentType() string {
 type GetEstimatedIntervalsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *EstimatedDeliveryIntervalsResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7752,6 +8570,8 @@ func (r GetEstimatedIntervalsResponse) ContentType() string {
 type GetIntervalsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *AvailableDeliveryIntervalsResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7781,6 +8601,8 @@ func (r GetIntervalsResponse) ContentType() string {
 type GetDeliveryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoScheduleInfoDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7810,6 +8632,8 @@ func (r GetDeliveryResponse) ContentType() string {
 type GetDeliverypointsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *OfficeDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7836,9 +8660,42 @@ func (r GetDeliverypointsResponse) ContentType() string {
 	return ""
 }
 
+type ByPolygonsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *OfficeDto
+	JSON400      *SimplifiedResponseDto1
+}
+
+// Status returns HTTPResponse.Status
+func (r ByPolygonsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ByPolygonsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ByPolygonsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ChangeStatusResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *IntakeChangeStatusResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7868,6 +8725,8 @@ func (r ChangeStatusResponse) ContentType() string {
 type CreateIntakeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7897,6 +8756,8 @@ func (r CreateIntakeResponse) ContentType() string {
 type GetAvailableDaysResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *IntakeAvailableDaysResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7926,6 +8787,8 @@ func (r GetAvailableDaysResponse) ContentType() string {
 type DeleteByUuidResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -7955,6 +8818,8 @@ func (r DeleteByUuidResponse) ContentType() string {
 type GetByUuidResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *IntakeInfoDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8013,6 +8878,8 @@ func (r CheckPackagesRestrictionsResponse) ContentType() string {
 type CitiesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *V2LocationCityDto
+	JSON400      *SimplifiedResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8042,6 +8909,8 @@ func (r CitiesResponse) ContentType() string {
 type GetCityByCoordinatesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *V2LocationCityByCoordinatesDto
+	JSON400      *SimplifiedResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8071,6 +8940,8 @@ func (r GetCityByCoordinatesResponse) ContentType() string {
 type PostalcodesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *PostcodesResponseDto
+	JSON400      *SimplifiedResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8100,6 +8971,8 @@ func (r PostalcodesResponse) ContentType() string {
 type RegionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *RegionsResponseDto
+	JSON400      *SimplifiedResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8129,6 +9002,8 @@ func (r RegionsResponse) ContentType() string {
 type SuggestCitiesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *SuggestCityResponseDto
+	JSON400      *SimplifiedResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8158,6 +9033,8 @@ func (r SuggestCitiesResponse) ContentType() string {
 type GetOAuthTokenResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *AuthResponseDto
+	JSON400      *ErrorDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8187,6 +9064,8 @@ func (r GetOAuthTokenResponse) ContentType() string {
 type GetOrdersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoOrderResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8216,6 +9095,8 @@ func (r GetOrdersResponse) ContentType() string {
 type UpdateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8245,6 +9126,8 @@ func (r UpdateResponse) ContentType() string {
 type CreateOrderResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8274,6 +9157,8 @@ func (r CreateOrderResponse) ContentType() string {
 type GetIntakesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *interface{}
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8303,6 +9188,8 @@ func (r GetIntakesResponse) ContentType() string {
 type DeleteResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8332,6 +9219,8 @@ func (r DeleteResponse) ContentType() string {
 type GetOrderResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoOrderResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8361,6 +9250,8 @@ func (r GetOrderResponse) ContentType() string {
 type ClientReturnResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8390,6 +9281,8 @@ func (r ClientReturnResponse) ContentType() string {
 type RefuseResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *ResponseDtoRootEntityDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8419,6 +9312,8 @@ func (r RefuseResponse) ContentType() string {
 type GetPassportResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *PassportResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8445,38 +9340,11 @@ func (r GetPassportResponse) ContentType() string {
 	return ""
 }
 
-type GetPaymentResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r GetPaymentResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetPaymentResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r GetPaymentResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 type GetReadyOrdersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *PhotoResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8503,9 +9371,40 @@ func (r GetReadyOrdersResponse) ContentType() string {
 	return ""
 }
 
+type GetPhotoDocumentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPhotoDocumentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPhotoDocumentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPhotoDocumentResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type RegisterResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *RegisterPrealertResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8535,6 +9434,8 @@ func (r RegisterResponse) ContentType() string {
 type GetPrealertResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *GetPrealertResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8564,6 +9465,8 @@ func (r GetPrealertResponse) ContentType() string {
 type BarcodePrintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *BarcodePrintResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8593,6 +9496,8 @@ func (r BarcodePrintResponse) ContentType() string {
 type BarcodeGetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *BarcodeGetResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8651,6 +9556,8 @@ func (r BarcodeDownloadResponse) ContentType() string {
 type WaybillPrintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON202      *WaybillPrintResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8680,6 +9587,8 @@ func (r WaybillPrintResponse) ContentType() string {
 type WaybillGetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *WaybillGetResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8738,6 +9647,8 @@ func (r WaybillDownloadResponse) ContentType() string {
 type GetRegistriesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *RegistriesResponseDto
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8767,6 +9678,7 @@ func (r GetRegistriesResponse) ContentType() string {
 type CheckAvailabilityResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON400      *SimplifiedResponseDto1
 }
 
 // Status returns HTTPResponse.Status
@@ -8796,6 +9708,7 @@ func (r CheckAvailabilityResponse) ContentType() string {
 type GetAllResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *interface{}
 }
 
 // Status returns HTTPResponse.Status
@@ -8825,6 +9738,8 @@ func (r GetAllResponse) ContentType() string {
 type CreateV2WebhooksResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoWebhookResponseDto
+	JSON400      *ResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8854,6 +9769,8 @@ func (r CreateV2WebhooksResponse) ContentType() string {
 type DeleteByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoWebhookResponseDto
+	JSON400      *ResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8883,6 +9800,8 @@ func (r DeleteByIdResponse) ContentType() string {
 type GetByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ResponseDtoWebhookDto
+	JSON400      *ResponseDto
 }
 
 // Status returns HTTPResponse.Status
@@ -8927,6 +9846,14 @@ func (c *ClientWithResponses) TariffWithBodyWithResponse(ctx context.Context, pa
 	return ParseTariffResponse(rsp)
 }
 
+func (c *ClientWithResponses) TariffWithResponse(ctx context.Context, params *TariffParams, body TariffJSONRequestBody, reqEditors ...RequestEditorFn) (*TariffResponse, error) {
+	rsp, err := c.Tariff(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTariffResponse(rsp)
+}
+
 // TariffWithServicesWithBodyWithResponse request with arbitrary body returning *TariffWithServicesResponse
 func (c *ClientWithResponses) TariffWithServicesWithBodyWithResponse(ctx context.Context, params *TariffWithServicesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TariffWithServicesResponse, error) {
 	rsp, err := c.TariffWithServicesWithBody(ctx, params, contentType, body, reqEditors...)
@@ -8936,9 +9863,25 @@ func (c *ClientWithResponses) TariffWithServicesWithBodyWithResponse(ctx context
 	return ParseTariffWithServicesResponse(rsp)
 }
 
+func (c *ClientWithResponses) TariffWithServicesWithResponse(ctx context.Context, params *TariffWithServicesParams, body TariffWithServicesJSONRequestBody, reqEditors ...RequestEditorFn) (*TariffWithServicesResponse, error) {
+	rsp, err := c.TariffWithServices(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTariffWithServicesResponse(rsp)
+}
+
 // TariffListWithBodyWithResponse request with arbitrary body returning *TariffListResponse
 func (c *ClientWithResponses) TariffListWithBodyWithResponse(ctx context.Context, params *TariffListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TariffListResponse, error) {
 	rsp, err := c.TariffListWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTariffListResponse(rsp)
+}
+
+func (c *ClientWithResponses) TariffListWithResponse(ctx context.Context, params *TariffListParams, body TariffListJSONRequestBody, reqEditors ...RequestEditorFn) (*TariffListResponse, error) {
+	rsp, err := c.TariffList(ctx, params, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -8963,9 +9906,25 @@ func (c *ClientWithResponses) CreateDeliveryWithBodyWithResponse(ctx context.Con
 	return ParseCreateDeliveryResponse(rsp)
 }
 
+func (c *ClientWithResponses) CreateDeliveryWithResponse(ctx context.Context, body CreateDeliveryJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDeliveryResponse, error) {
+	rsp, err := c.CreateDelivery(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDeliveryResponse(rsp)
+}
+
 // GetEstimatedIntervalsWithBodyWithResponse request with arbitrary body returning *GetEstimatedIntervalsResponse
 func (c *ClientWithResponses) GetEstimatedIntervalsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetEstimatedIntervalsResponse, error) {
 	rsp, err := c.GetEstimatedIntervalsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetEstimatedIntervalsResponse(rsp)
+}
+
+func (c *ClientWithResponses) GetEstimatedIntervalsWithResponse(ctx context.Context, body GetEstimatedIntervalsJSONRequestBody, reqEditors ...RequestEditorFn) (*GetEstimatedIntervalsResponse, error) {
+	rsp, err := c.GetEstimatedIntervals(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -8999,9 +9958,26 @@ func (c *ClientWithResponses) GetDeliverypointsWithResponse(ctx context.Context,
 	return ParseGetDeliverypointsResponse(rsp)
 }
 
+// ByPolygonsWithResponse request returning *ByPolygonsResponse
+func (c *ClientWithResponses) ByPolygonsWithResponse(ctx context.Context, params *ByPolygonsParams, reqEditors ...RequestEditorFn) (*ByPolygonsResponse, error) {
+	rsp, err := c.ByPolygons(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseByPolygonsResponse(rsp)
+}
+
 // ChangeStatusWithBodyWithResponse request with arbitrary body returning *ChangeStatusResponse
 func (c *ClientWithResponses) ChangeStatusWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeStatusResponse, error) {
 	rsp, err := c.ChangeStatusWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeStatusResponse(rsp)
+}
+
+func (c *ClientWithResponses) ChangeStatusWithResponse(ctx context.Context, body ChangeStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeStatusResponse, error) {
+	rsp, err := c.ChangeStatus(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9017,9 +9993,25 @@ func (c *ClientWithResponses) CreateIntakeWithBodyWithResponse(ctx context.Conte
 	return ParseCreateIntakeResponse(rsp)
 }
 
+func (c *ClientWithResponses) CreateIntakeWithResponse(ctx context.Context, body CreateIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateIntakeResponse, error) {
+	rsp, err := c.CreateIntake(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateIntakeResponse(rsp)
+}
+
 // GetAvailableDaysWithBodyWithResponse request with arbitrary body returning *GetAvailableDaysResponse
 func (c *ClientWithResponses) GetAvailableDaysWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetAvailableDaysResponse, error) {
 	rsp, err := c.GetAvailableDaysWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAvailableDaysResponse(rsp)
+}
+
+func (c *ClientWithResponses) GetAvailableDaysWithResponse(ctx context.Context, body GetAvailableDaysJSONRequestBody, reqEditors ...RequestEditorFn) (*GetAvailableDaysResponse, error) {
+	rsp, err := c.GetAvailableDays(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9047,6 +10039,14 @@ func (c *ClientWithResponses) GetByUuidWithResponse(ctx context.Context, uuid in
 // CheckPackagesRestrictionsWithBodyWithResponse request with arbitrary body returning *CheckPackagesRestrictionsResponse
 func (c *ClientWithResponses) CheckPackagesRestrictionsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckPackagesRestrictionsResponse, error) {
 	rsp, err := c.CheckPackagesRestrictionsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckPackagesRestrictionsResponse(rsp)
+}
+
+func (c *ClientWithResponses) CheckPackagesRestrictionsWithResponse(ctx context.Context, body CheckPackagesRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckPackagesRestrictionsResponse, error) {
+	rsp, err := c.CheckPackagesRestrictions(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9098,17 +10098,9 @@ func (c *ClientWithResponses) SuggestCitiesWithResponse(ctx context.Context, par
 	return ParseSuggestCitiesResponse(rsp)
 }
 
-// GetOAuthTokenWithBodyWithResponse request with arbitrary body returning *GetOAuthTokenResponse
-func (c *ClientWithResponses) GetOAuthTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetOAuthTokenResponse, error) {
-	rsp, err := c.GetOAuthTokenWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetOAuthTokenResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetOAuthTokenWithFormdataBodyWithResponse(ctx context.Context, body GetOAuthTokenFormdataRequestBody, reqEditors ...RequestEditorFn) (*GetOAuthTokenResponse, error) {
-	rsp, err := c.GetOAuthTokenWithFormdataBody(ctx, body, reqEditors...)
+// GetOAuthTokenWithResponse request returning *GetOAuthTokenResponse
+func (c *ClientWithResponses) GetOAuthTokenWithResponse(ctx context.Context, params *GetOAuthTokenParams, reqEditors ...RequestEditorFn) (*GetOAuthTokenResponse, error) {
+	rsp, err := c.GetOAuthToken(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9133,9 +10125,25 @@ func (c *ClientWithResponses) UpdateWithBodyWithResponse(ctx context.Context, pa
 	return ParseUpdateResponse(rsp)
 }
 
+func (c *ClientWithResponses) UpdateWithResponse(ctx context.Context, params *UpdateParams, body UpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateResponse, error) {
+	rsp, err := c.Update(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateResponse(rsp)
+}
+
 // CreateOrderWithBodyWithResponse request with arbitrary body returning *CreateOrderResponse
 func (c *ClientWithResponses) CreateOrderWithBodyWithResponse(ctx context.Context, params *CreateOrderParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateOrderResponse, error) {
 	rsp, err := c.CreateOrderWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateOrderResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateOrderWithResponse(ctx context.Context, params *CreateOrderParams, body CreateOrderJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateOrderResponse, error) {
+	rsp, err := c.CreateOrder(ctx, params, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9178,6 +10186,14 @@ func (c *ClientWithResponses) ClientReturnWithBodyWithResponse(ctx context.Conte
 	return ParseClientReturnResponse(rsp)
 }
 
+func (c *ClientWithResponses) ClientReturnWithResponse(ctx context.Context, uuid interface{}, body ClientReturnJSONRequestBody, reqEditors ...RequestEditorFn) (*ClientReturnResponse, error) {
+	rsp, err := c.ClientReturn(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClientReturnResponse(rsp)
+}
+
 // RefuseWithResponse request returning *RefuseResponse
 func (c *ClientWithResponses) RefuseWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*RefuseResponse, error) {
 	rsp, err := c.Refuse(ctx, uuid, reqEditors...)
@@ -9196,15 +10212,6 @@ func (c *ClientWithResponses) GetPassportWithResponse(ctx context.Context, param
 	return ParseGetPassportResponse(rsp)
 }
 
-// GetPaymentWithResponse request returning *GetPaymentResponse
-func (c *ClientWithResponses) GetPaymentWithResponse(ctx context.Context, params *GetPaymentParams, reqEditors ...RequestEditorFn) (*GetPaymentResponse, error) {
-	rsp, err := c.GetPayment(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetPaymentResponse(rsp)
-}
-
 // GetReadyOrdersWithBodyWithResponse request with arbitrary body returning *GetReadyOrdersResponse
 func (c *ClientWithResponses) GetReadyOrdersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetReadyOrdersResponse, error) {
 	rsp, err := c.GetReadyOrdersWithBody(ctx, contentType, body, reqEditors...)
@@ -9214,9 +10221,34 @@ func (c *ClientWithResponses) GetReadyOrdersWithBodyWithResponse(ctx context.Con
 	return ParseGetReadyOrdersResponse(rsp)
 }
 
+func (c *ClientWithResponses) GetReadyOrdersWithResponse(ctx context.Context, body GetReadyOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*GetReadyOrdersResponse, error) {
+	rsp, err := c.GetReadyOrders(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetReadyOrdersResponse(rsp)
+}
+
+// GetPhotoDocumentWithResponse request returning *GetPhotoDocumentResponse
+func (c *ClientWithResponses) GetPhotoDocumentWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*GetPhotoDocumentResponse, error) {
+	rsp, err := c.GetPhotoDocument(ctx, uuid, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPhotoDocumentResponse(rsp)
+}
+
 // RegisterWithBodyWithResponse request with arbitrary body returning *RegisterResponse
 func (c *ClientWithResponses) RegisterWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterResponse, error) {
 	rsp, err := c.RegisterWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterResponse(rsp)
+}
+
+func (c *ClientWithResponses) RegisterWithResponse(ctx context.Context, body RegisterJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterResponse, error) {
+	rsp, err := c.Register(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9235,6 +10267,14 @@ func (c *ClientWithResponses) GetPrealertWithResponse(ctx context.Context, uuid 
 // BarcodePrintWithBodyWithResponse request with arbitrary body returning *BarcodePrintResponse
 func (c *ClientWithResponses) BarcodePrintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BarcodePrintResponse, error) {
 	rsp, err := c.BarcodePrintWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBarcodePrintResponse(rsp)
+}
+
+func (c *ClientWithResponses) BarcodePrintWithResponse(ctx context.Context, body BarcodePrintJSONRequestBody, reqEditors ...RequestEditorFn) (*BarcodePrintResponse, error) {
+	rsp, err := c.BarcodePrint(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9262,6 +10302,14 @@ func (c *ClientWithResponses) BarcodeDownloadWithResponse(ctx context.Context, u
 // WaybillPrintWithBodyWithResponse request with arbitrary body returning *WaybillPrintResponse
 func (c *ClientWithResponses) WaybillPrintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*WaybillPrintResponse, error) {
 	rsp, err := c.WaybillPrintWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseWaybillPrintResponse(rsp)
+}
+
+func (c *ClientWithResponses) WaybillPrintWithResponse(ctx context.Context, body WaybillPrintJSONRequestBody, reqEditors ...RequestEditorFn) (*WaybillPrintResponse, error) {
+	rsp, err := c.WaybillPrint(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9304,6 +10352,14 @@ func (c *ClientWithResponses) CheckAvailabilityWithBodyWithResponse(ctx context.
 	return ParseCheckAvailabilityResponse(rsp)
 }
 
+func (c *ClientWithResponses) CheckAvailabilityWithResponse(ctx context.Context, body CheckAvailabilityJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckAvailabilityResponse, error) {
+	rsp, err := c.CheckAvailability(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckAvailabilityResponse(rsp)
+}
+
 // GetAllWithResponse request returning *GetAllResponse
 func (c *ClientWithResponses) GetAllWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAllResponse, error) {
 	rsp, err := c.GetAll(ctx, reqEditors...)
@@ -9322,8 +10378,16 @@ func (c *ClientWithResponses) CreateV2WebhooksWithBodyWithResponse(ctx context.C
 	return ParseCreateV2WebhooksResponse(rsp)
 }
 
+func (c *ClientWithResponses) CreateV2WebhooksWithResponse(ctx context.Context, body CreateV2WebhooksJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateV2WebhooksResponse, error) {
+	rsp, err := c.CreateV2Webhooks(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateV2WebhooksResponse(rsp)
+}
+
 // DeleteByIdWithResponse request returning *DeleteByIdResponse
-func (c *ClientWithResponses) DeleteByIdWithResponse(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*DeleteByIdResponse, error) {
+func (c *ClientWithResponses) DeleteByIdWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*DeleteByIdResponse, error) {
 	rsp, err := c.DeleteById(ctx, uuid, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -9332,7 +10396,7 @@ func (c *ClientWithResponses) DeleteByIdWithResponse(ctx context.Context, uuid s
 }
 
 // GetByIdWithResponse request returning *GetByIdResponse
-func (c *ClientWithResponses) GetByIdWithResponse(ctx context.Context, uuid string, reqEditors ...RequestEditorFn) (*GetByIdResponse, error) {
+func (c *ClientWithResponses) GetByIdWithResponse(ctx context.Context, uuid interface{}, reqEditors ...RequestEditorFn) (*GetByIdResponse, error) {
 	rsp, err := c.GetById(ctx, uuid, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -9353,6 +10417,23 @@ func ParseAvailableTariffsResponse(rsp *http.Response) (*AvailableTariffsRespons
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CalculatorAvailableTariffsResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9367,6 +10448,23 @@ func ParseTariffResponse(rsp *http.Response) (*TariffResponse, error) {
 	response := &TariffResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CalculatorResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9385,6 +10483,23 @@ func ParseTariffWithServicesResponse(rsp *http.Response) (*TariffWithServicesRes
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CalculatorTariffWithServicesListResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9399,6 +10514,23 @@ func ParseTariffListResponse(rsp *http.Response) (*TariffListResponse, error) {
 	response := &TariffListResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CalculatorTariffListResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9417,6 +10549,23 @@ func ParseGetCheckResponse(rsp *http.Response) (*GetCheckResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CheckResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9431,6 +10580,23 @@ func ParseCreateDeliveryResponse(rsp *http.Response) (*CreateDeliveryResponse, e
 	response := &CreateDeliveryResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9449,6 +10615,23 @@ func ParseGetEstimatedIntervalsResponse(rsp *http.Response) (*GetEstimatedInterv
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EstimatedDeliveryIntervalsResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9463,6 +10646,23 @@ func ParseGetIntervalsResponse(rsp *http.Response) (*GetIntervalsResponse, error
 	response := &GetIntervalsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AvailableDeliveryIntervalsResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9481,6 +10681,23 @@ func ParseGetDeliveryResponse(rsp *http.Response) (*GetDeliveryResponse, error) 
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoScheduleInfoDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9495,6 +10712,56 @@ func ParseGetDeliverypointsResponse(rsp *http.Response) (*GetDeliverypointsRespo
 	response := &GetDeliverypointsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OfficeDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseByPolygonsResponse parses an HTTP response from a ByPolygonsWithResponse call
+func ParseByPolygonsResponse(rsp *http.Response) (*ByPolygonsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ByPolygonsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OfficeDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9513,6 +10780,23 @@ func ParseChangeStatusResponse(rsp *http.Response) (*ChangeStatusResponse, error
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest IntakeChangeStatusResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9527,6 +10811,23 @@ func ParseCreateIntakeResponse(rsp *http.Response) (*CreateIntakeResponse, error
 	response := &CreateIntakeResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9545,6 +10846,23 @@ func ParseGetAvailableDaysResponse(rsp *http.Response) (*GetAvailableDaysRespons
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest IntakeAvailableDaysResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9561,6 +10879,23 @@ func ParseDeleteByUuidResponse(rsp *http.Response) (*DeleteByUuidResponse, error
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9575,6 +10910,23 @@ func ParseGetByUuidResponse(rsp *http.Response) (*GetByUuidResponse, error) {
 	response := &GetByUuidResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest IntakeInfoDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9609,6 +10961,23 @@ func ParseCitiesResponse(rsp *http.Response) (*CitiesResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V2LocationCityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9623,6 +10992,23 @@ func ParseGetCityByCoordinatesResponse(rsp *http.Response) (*GetCityByCoordinate
 	response := &GetCityByCoordinatesResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V2LocationCityByCoordinatesDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9641,6 +11027,23 @@ func ParsePostalcodesResponse(rsp *http.Response) (*PostalcodesResponse, error) 
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PostcodesResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9655,6 +11058,23 @@ func ParseRegionsResponse(rsp *http.Response) (*RegionsResponse, error) {
 	response := &RegionsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegionsResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9673,6 +11093,23 @@ func ParseSuggestCitiesResponse(rsp *http.Response) (*SuggestCitiesResponse, err
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SuggestCityResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9687,6 +11124,23 @@ func ParseGetOAuthTokenResponse(rsp *http.Response) (*GetOAuthTokenResponse, err
 	response := &GetOAuthTokenResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AuthResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9705,6 +11159,23 @@ func ParseGetOrdersResponse(rsp *http.Response) (*GetOrdersResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoOrderResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9719,6 +11190,23 @@ func ParseUpdateResponse(rsp *http.Response) (*UpdateResponse, error) {
 	response := &UpdateResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9737,6 +11225,23 @@ func ParseCreateOrderResponse(rsp *http.Response) (*CreateOrderResponse, error) 
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9751,6 +11256,23 @@ func ParseGetIntakesResponse(rsp *http.Response) (*GetIntakesResponse, error) {
 	response := &GetIntakesResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest interface{}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9769,6 +11291,23 @@ func ParseDeleteResponse(rsp *http.Response) (*DeleteResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9783,6 +11322,23 @@ func ParseGetOrderResponse(rsp *http.Response) (*GetOrderResponse, error) {
 	response := &GetOrderResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoOrderResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9801,6 +11357,23 @@ func ParseClientReturnResponse(rsp *http.Response) (*ClientReturnResponse, error
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9815,6 +11388,23 @@ func ParseRefuseResponse(rsp *http.Response) (*RefuseResponse, error) {
 	response := &RefuseResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ResponseDtoRootEntityDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9833,20 +11423,21 @@ func ParseGetPassportResponse(rsp *http.Response) (*GetPassportResponse, error) 
 		HTTPResponse: rsp,
 	}
 
-	return response, nil
-}
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PassportResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
-// ParseGetPaymentResponse parses an HTTP response from a GetPaymentWithResponse call
-func ParseGetPaymentResponse(rsp *http.Response) (*GetPaymentResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
-	response := &GetPaymentResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -9861,6 +11452,39 @@ func ParseGetReadyOrdersResponse(rsp *http.Response) (*GetReadyOrdersResponse, e
 	}
 
 	response := &GetReadyOrdersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PhotoResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPhotoDocumentResponse parses an HTTP response from a GetPhotoDocumentWithResponse call
+func ParseGetPhotoDocumentResponse(rsp *http.Response) (*GetPhotoDocumentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPhotoDocumentResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -9881,6 +11505,23 @@ func ParseRegisterResponse(rsp *http.Response) (*RegisterResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RegisterPrealertResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9895,6 +11536,23 @@ func ParseGetPrealertResponse(rsp *http.Response) (*GetPrealertResponse, error) 
 	response := &GetPrealertResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GetPrealertResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9913,6 +11571,23 @@ func ParseBarcodePrintResponse(rsp *http.Response) (*BarcodePrintResponse, error
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest BarcodePrintResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9927,6 +11602,23 @@ func ParseBarcodeGetResponse(rsp *http.Response) (*BarcodeGetResponse, error) {
 	response := &BarcodeGetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BarcodeGetResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -9961,6 +11653,23 @@ func ParseWaybillPrintResponse(rsp *http.Response) (*WaybillPrintResponse, error
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest WaybillPrintResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -9975,6 +11684,23 @@ func ParseWaybillGetResponse(rsp *http.Response) (*WaybillGetResponse, error) {
 	response := &WaybillGetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WaybillGetResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -10009,6 +11735,23 @@ func ParseGetRegistriesResponse(rsp *http.Response) (*GetRegistriesResponse, err
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistriesResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -10023,6 +11766,16 @@ func ParseCheckAvailabilityResponse(rsp *http.Response) (*CheckAvailabilityRespo
 	response := &CheckAvailabilityResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest SimplifiedResponseDto1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -10041,6 +11794,16 @@ func ParseGetAllResponse(rsp *http.Response) (*GetAllResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest interface{}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -10055,6 +11818,23 @@ func ParseCreateV2WebhooksResponse(rsp *http.Response) (*CreateV2WebhooksRespons
 	response := &CreateV2WebhooksResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoWebhookResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil
@@ -10073,6 +11853,23 @@ func ParseDeleteByIdResponse(rsp *http.Response) (*DeleteByIdResponse, error) {
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoWebhookResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -10087,6 +11884,23 @@ func ParseGetByIdResponse(rsp *http.Response) (*GetByIdResponse, error) {
 	response := &GetByIdResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResponseDtoWebhookDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil

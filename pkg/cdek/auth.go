@@ -70,14 +70,14 @@ func (a *AuthenticatedClient) GetToken(ctx context.Context) (string, error) {
 		return token, nil
 	}
 
-	// Запрашиваем новый токен через form-data
-	body := GetOAuthTokenFormdataRequestBody{
-		GrantType:    GetOAuthTokenFormdataBodyGrantTypeClientCredentials,
+	// Запрашиваем новый токен через query-параметры
+	params := &GetOAuthTokenParams{
+		GrantType:    "client_credentials",
 		ClientId:     a.config.ClientID,
 		ClientSecret: a.config.ClientSecret,
 	}
 
-	resp, err := a.client.GetOAuthTokenWithFormdataBody(ctx, body)
+	resp, err := a.client.GetOAuthToken(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("failed to get token: %w", err)
 	}
