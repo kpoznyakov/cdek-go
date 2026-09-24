@@ -248,6 +248,95 @@ func (m *dtoMapper) toCDEKOrderRequest(req *OrderRequest) (map[string]interface{
 		order["comment"] = *req.Comment
 	}
 
+	// Номер заказа в ИС клиента (только для заказов типа "интернет-магазин")
+	if req.Number != nil {
+		order["number"] = *req.Number
+	}
+
+	// Номер сопроводительной накладной на товар (СНТ)
+	if req.AccompanyingNumber != nil {
+		order["accompanying_number"] = *req.AccompanyingNumber
+	}
+
+	// Дополнительные типы заказа
+	if len(req.AdditionalOrderTypes) > 0 {
+		order["additional_order_types"] = req.AdditionalOrderTypes
+	}
+
+	// Код ПВЗ СДЭК самостоятельного привоза клиентом
+	if req.ShipmentPoint != nil {
+		order["shipment_point"] = *req.ShipmentPoint
+	}
+
+	// Код ПВЗ СДЭК/постамата для доставки
+	if req.DeliveryPoint != nil {
+		order["delivery_point"] = *req.DeliveryPoint
+	}
+
+	// Международный заказ "интернет-магазин": дата инвойса, грузоотправитель
+	if req.DateInvoice != nil {
+		order["date_invoice"] = *req.DateInvoice
+	}
+	if req.ShipperName != nil {
+		order["shipper_name"] = *req.ShipperName
+	}
+	if req.ShipperAddress != nil {
+		order["shipper_address"] = *req.ShipperAddress
+	}
+
+	// Доп. сбор за доставку, который ИМ берет с получателя
+	if req.DeliveryRecipientCost != nil {
+		cost := map[string]interface{}{
+			"value": req.DeliveryRecipientCost.Value,
+		}
+		if req.DeliveryRecipientCost.VATSum != nil {
+			cost["vat_sum"] = *req.DeliveryRecipientCost.VATSum
+		}
+		if req.DeliveryRecipientCost.VATRate != nil {
+			cost["vat_rate"] = *req.DeliveryRecipientCost.VATRate
+		}
+		order["delivery_recipient_cost"] = cost
+	}
+
+	// Доп. сбор за доставку в зависимости от суммы заказа (ДСД)
+	if len(req.DeliveryRecipientCostAdv) > 0 {
+		thresholds := make([]map[string]interface{}, len(req.DeliveryRecipientCostAdv))
+		for i, t := range req.DeliveryRecipientCostAdv {
+			th := make(map[string]interface{})
+			if t.Threshold != nil {
+				th["threshold"] = *t.Threshold
+			}
+			if t.Sum != nil {
+				th["sum"] = *t.Sum
+			}
+			if t.VATSum != nil {
+				th["vat_sum"] = *t.VATSum
+			}
+			if t.VATRate != nil {
+				th["vat_rate"] = *t.VATRate
+			}
+			thresholds[i] = th
+		}
+		order["delivery_recipient_cost_adv"] = thresholds
+	}
+
+	// Тип печатной формы, токен виджета, признаки возврата, ключ разработчика
+	if req.Print != nil {
+		order["print"] = *req.Print
+	}
+	if req.WidgetToken != nil {
+		order["widgetToken"] = *req.WidgetToken
+	}
+	if req.IsClientReturn != nil {
+		order["is_client_return"] = *req.IsClientReturn
+	}
+	if req.HasReverseOrder != nil {
+		order["has_reverse_order"] = *req.HasReverseOrder
+	}
+	if req.DeveloperKey != nil {
+		order["developer_key"] = *req.DeveloperKey
+	}
+
 	// Отправитель (теперь с поддержкой ИНН и паспортных данных)
 	if req.Sender.Name != "" {
 		sender := map[string]interface{}{
@@ -403,6 +492,9 @@ func (m *dtoMapper) toCDEKOrderRequest(req *OrderRequest) (map[string]interface{
 		if pkg.Height != nil {
 			p["height"] = *pkg.Height
 		}
+		if pkg.Comment != nil {
+			p["comment"] = *pkg.Comment
+		}
 
 		// Товары в упаковке
 		items := make([]map[string]interface{}, len(pkg.Items))
@@ -420,6 +512,19 @@ func (m *dtoMapper) toCDEKOrderRequest(req *OrderRequest) (map[string]interface{
 		packages[i] = p
 	}
 	order["packages"] = packages
+
+	// Дополнительные услуги
+	if len(req.Services) > 0 {
+		services := make([]map[string]interface{}, len(req.Services))
+		for i, s := range req.Services {
+			svc := map[string]interface{}{"code": s.Code}
+			if s.Parameter != nil {
+				svc["parameter"] = *s.Parameter
+			}
+			services[i] = svc
+		}
+		order["services"] = services
+	}
 
 	return order, nil
 }

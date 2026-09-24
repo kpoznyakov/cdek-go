@@ -93,15 +93,52 @@ type Seller struct {
 
 // OrderRequest - запрос на создание заказа
 type OrderRequest struct {
-	Type         string         // Тип заказа: "delivery" (доставка), "pickup" (самовывоз)
-	TariffCode   int            // Код тарифа
-	Comment      *string        // Комментарий к заказу
-	Sender       Recipient      // Отправитель (может быть компания с ИНН или физлицо с паспортом)
-	Recipient    Recipient      // Получатель (может быть компания с ИНН или физлицо с паспортом)
-	Seller       *Seller        // Истинный продавец (третье лицо) - только для интернет-магазинов
-	FromLocation Location       // Адрес отправителя
-	ToLocation   Location       // Адрес получателя
-	Packages     []OrderPackage // Список мест
+	Type                     string                  // Тип заказа: "delivery" (доставка), "pickup" (самовывоз)
+	TariffCode               int                     // Код тарифа
+	Comment                  *string                 // Комментарий к заказу
+	Number                   *string                 // Номер заказа в ИС клиента (только для заказов типа «интернет-магазин»)
+	AccompanyingNumber       *string                 // Номер сопроводительной накладной на товар (СНТ)
+	AdditionalOrderTypes     []int                   // Дополнительные типы заказа
+	Sender                   Recipient               // Отправитель (может быть компания с ИНН или физлицо с паспортом)
+	Recipient                Recipient               // Получатель (может быть компания с ИНН или физлицо с паспортом)
+	Seller                   *Seller                 // Истинный продавец (третье лицо) - только для интернет-магазинов
+	FromLocation             Location                // Адрес отправителя
+	ToLocation               Location                // Адрес получателя
+	ShipmentPoint            *string                 // Код ПВЗ СДЭК самостоятельного привоза клиентом. Не может использоваться одновременно с FromLocation
+	DeliveryPoint            *string                 // Код ПВЗ СДЭК/постамата для доставки. Не может использоваться одновременно с ToLocation
+	Packages                 []OrderPackage          // Список мест
+	Services                 []AdditionalService     // Дополнительные услуги
+	DateInvoice              *string                 // Дата инвойса (yyyy-MM-dd). Обязательно для международного заказа "интернет-магазин"
+	ShipperName              *string                 // Грузоотправитель. Обязательно для международного заказа "интернет-магазин"
+	ShipperAddress           *string                 // Адрес грузоотправителя. Обязательно для международного заказа "интернет-магазин"
+	DeliveryRecipientCost    *DeliveryRecipientCost  // Доп. сбор за доставку, который ИМ берет с получателя
+	DeliveryRecipientCostAdv []DeliveryCostThreshold // Доп. сбор за доставку в зависимости от суммы заказа (ДСД)
+	Print                    *string                 // Тип печатной формы для формирования вместе с заказом: WAYBILL, BARCODE
+	WidgetToken              *string                 // Токен CMS, содержащий дополнительные данные для заполнения данных о заказе
+	IsClientReturn           *bool                   // Признак клиентского возврата
+	HasReverseOrder          *bool                   // Признак необходимости создания реверсного заказа
+	DeveloperKey             *string                 // Ключ разработчика
+}
+
+// AdditionalService - дополнительная услуга, заказываемая вместе с заказом
+type AdditionalService struct {
+	Code      string  `json:"code,omitempty"`      // Тип дополнительной услуги
+	Parameter *string `json:"parameter,omitempty"` // Параметр дополнительной услуги (зависит от кода услуги)
+}
+
+// DeliveryRecipientCost - доп. сбор за доставку, который ИМ берет с получателя (только для заказов "интернет-магазин")
+type DeliveryRecipientCost struct {
+	Value   float64  `json:"value"`              // Сумма платежа, включая НДС
+	VATSum  *float64 `json:"vat_sum,omitempty"`  // Сумма НДС
+	VATRate *int     `json:"vat_rate,omitempty"` // Ставка НДС (0, 5, 7, 10, 16, 22, null - без НДС)
+}
+
+// DeliveryCostThreshold - порог ДСД (доп. сбор за доставку в зависимости от суммы заказа)
+type DeliveryCostThreshold struct {
+	Threshold *int     `json:"threshold,omitempty"` // Порог стоимости товара (<=), в целых единицах валюты
+	Sum       *float64 `json:"sum,omitempty"`       // Доп. сбор за доставку товаров в этом интервале
+	VATSum    *float64 `json:"vat_sum,omitempty"`   // Сумма НДС
+	VATRate   *int     `json:"vat_rate,omitempty"`  // Ставка НДС (0, 5, 7, 10, 16, 22, null - без НДС)
 }
 
 // Contact - контактная информация
