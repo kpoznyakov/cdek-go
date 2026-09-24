@@ -11,32 +11,32 @@ package cdek
 
 // CostRequest - запрос на расчет стоимости доставки
 type CostRequest struct {
-	FromCityCode int32     // Код города отправителя (по КЛАДР)
-	ToCityCode   int32     // Код города получателя (по КЛАДР)
-	Packages     []Package // Список мест (упаковок)
+	FromCityCode int32     `json:"from_city_code,omitempty"` // Код города отправителя (по КЛАДР)
+	ToCityCode   int32     `json:"to_city_code,omitempty"`   // Код города получателя (по КЛАДР)
+	Packages     []Package `json:"packages,omitempty"`       // Список мест (упаковок)
 }
 
 // Package - информация об одной упаковке (месте)
 type Package struct {
-	Weight int32 // Вес в граммах
-	Length int32 // Длина в см
-	Width  int32 // Ширина в см
-	Height int32 // Высота в см
+	Weight int32 `json:"weight,omitempty"` // Вес в граммах
+	Length int32 `json:"length,omitempty"` // Длина в см
+	Width  int32 `json:"width,omitempty"`  // Ширина в см
+	Height int32 `json:"height,omitempty"` // Высота в см
 }
 
 // CostResponse - ответ с вариантами доставки и стоимостью
 type CostResponse struct {
-	Tariffs []TariffOption // Доступные тарифы
+	Tariffs []TariffOption `json:"tariffs,omitempty"` // Доступные тарифы
 }
 
 // TariffOption - один вариант тарифа доставки
 type TariffOption struct {
-	TariffCode   int     // Код тарифа
-	TariffName   string  // Название тарифа
-	DeliveryMode int     // Режим доставки: 1=дверь-дверь, 2=дверь-склад, 3=склад-дверь, 4=склад-склад
-	DeliverySum  float64 // Стоимость доставки (рубли)
-	PeriodMin    int     // Минимальный срок доставки (дней)
-	PeriodMax    int     // Максимальный срок доставки (дней)
+	TariffCode   int     `json:"tariff_code,omitempty"`   // Код тарифа
+	TariffName   string  `json:"tariff_name,omitempty"`   // Название тарифа
+	DeliveryMode int     `json:"delivery_mode,omitempty"` // Режим доставки: 1=дверь-дверь, 2=дверь-склад, 3=склад-дверь, 4=склад-склад
+	DeliverySum  float64 `json:"delivery_sum,omitempty"`  // Стоимость доставки (рубли)
+	PeriodMin    int     `json:"period_min,omitempty"`    // Минимальный срок доставки (дней)
+	PeriodMax    int     `json:"period_max,omitempty"`    // Максимальный срок доставки (дней)
 }
 
 // AvailableTariffsRequest - запрос на получение списка доступных тарифов по договору
@@ -84,11 +84,11 @@ type AvailableDeliveryMode struct {
 // Seller - истинный продавец (третье лицо)
 // Используется для интернет-магазинов, когда фактический продавец отличается от отправителя
 type Seller struct {
-	Name          *string // Наименование истинного продавца
-	INN           *string // ИНН истинного продавца (10 или 12 символов)
-	Phone         *string // Телефон истинного продавца
-	OwnershipForm *int    // Код формы собственности
-	Address       *string // Адрес истинного продавца
+	Name          *string `json:"name,omitempty"`           // Наименование истинного продавца
+	INN           *string `json:"inn,omitempty"`            // ИНН истинного продавца (10 или 12 символов)
+	Phone         *string `json:"phone,omitempty"`          // Телефон истинного продавца
+	OwnershipForm *int    `json:"ownership_form,omitempty"` // Код формы собственности
+	Address       *string `json:"address,omitempty"`        // Адрес истинного продавца
 }
 
 // OrderRequest - запрос на создание заказа
@@ -106,77 +106,77 @@ type OrderRequest struct {
 
 // Contact - контактная информация
 type Contact struct {
-	Company *string // Название компании
-	Name    string  // ФИО контактного лица
-	Email   *string // Email
-	Phones  []Phone // Список телефонов
+	Company *string `json:"company,omitempty"` // Название компании
+	Name    string  `json:"name,omitempty"`    // ФИО контактного лица
+	Email   *string `json:"email,omitempty"`   // Email
+	Phones  []Phone `json:"phones,omitempty"`  // Список телефонов
 }
 
 // Recipient - информация о получателе (расширяет Contact)
 // Может быть как физическое лицо (Name + паспорт), так и компания (Company + ИНН)
 type Recipient struct {
-	Contact                      // Базовая контактная информация (Name обязательно для физлица, Company для юрлица)
-	TIN                  *string // ИНН (Tax Identification Number) - для юридических лиц и ИП (10 или 12 символов)
-	PassportSeries       *string // Серия паспорта (для физических лиц)
-	PassportNumber       *string // Номер паспорта (для физических лиц)
-	PassportDateOfIssue  *string // Дата выдачи паспорта (для физических лиц)
-	PassportOrganization *string // Кем выдан паспорт (для физических лиц)
-	PassportDateOfBirth  *string // Дата рождения (yyyy-MM-dd) (для физических лиц)
+	Contact              `json:"contact"` // Базовая контактная информация (Name обязательно для физлица, Company для юрлица)
+	TIN                  *string          `json:"tin,omitempty"`                    // ИНН (Tax Identification Number) - для юридических лиц и ИП (10 или 12 символов)
+	PassportSeries       *string          `json:"passport_series,omitempty"`        // Серия паспорта (для физических лиц)
+	PassportNumber       *string          `json:"passport_number,omitempty"`        // Номер паспорта (для физических лиц)
+	PassportDateOfIssue  *string          `json:"passport_date_of_issue,omitempty"` // Дата выдачи паспорта (для физических лиц)
+	PassportOrganization *string          `json:"passport_organization,omitempty"`  // Кем выдан паспорт (для физических лиц)
+	PassportDateOfBirth  *string          `json:"passport_date_of_birth,omitempty"` // Дата рождения (yyyy-MM-dd) (для физических лиц)
 }
 
 // Phone - телефонный номер
 type Phone struct {
-	Number     string  // Номер телефона (обязательно)
-	Additional *string // Добавочный номер
+	Number     string  `json:"number,omitempty"`     // Номер телефона (обязательно)
+	Additional *string `json:"additional,omitempty"` // Добавочный номер
 }
 
 // Location - местоположение (адрес)
 type Location struct {
-	Code        *int32  // Код населенного пункта СДЭК
-	FiasGUID    *string // Уникальный идентификатор ФИАС
-	PostalCode  *string // Почтовый индекс
-	CountryCode *string // Код страны (ISO 3166-1 alpha-2)
-	Region      *string // Регион
-	City        *string // Город
-	Address     *string // Адрес (улица, дом, квартира)
+	Code        *int32  `json:"code,omitempty"`         // Код населенного пункта СДЭК
+	FiasGUID    *string `json:"fias_guid,omitempty"`    // Уникальный идентификатор ФИАС
+	PostalCode  *string `json:"postal_code,omitempty"`  // Почтовый индекс
+	CountryCode *string `json:"country_code,omitempty"` // Код страны (ISO 3166-1 alpha-2)
+	Region      *string `json:"region,omitempty"`       // Регион
+	City        *string `json:"city,omitempty"`         // Город
+	Address     *string `json:"address,omitempty"`      // Адрес (улица, дом, квартира)
 }
 
 // OrderPackage - информация об упаковке в заказе
 type OrderPackage struct {
-	Number  string  // Номер упаковки (артикул)
-	Weight  int32   // Общий вес (граммы)
-	Length  *int32  // Длина (см)
-	Width   *int32  // Ширина (см)
-	Height  *int32  // Высота (см)
-	Comment *string // Комментарий
-	Items   []Item  // Список вложений
+	Number  string  `json:"number,omitempty"`  // Номер упаковки (артикул)
+	Weight  int32   `json:"weight,omitempty"`  // Общий вес (граммы)
+	Length  *int32  `json:"length,omitempty"`  // Длина (см)
+	Width   *int32  `json:"width,omitempty"`   // Ширина (см)
+	Height  *int32  `json:"height,omitempty"`  // Высота (см)
+	Comment *string `json:"comment,omitempty"` // Комментарий
+	Items   []Item  `json:"items,omitempty"`   // Список вложений
 }
 
 // Item - вложение в упаковку
 type Item struct {
-	Name    string  // Наименование товара
-	WareKey string  // Артикул товара
-	Payment float64 // Оплата (за единицу товара, в т.ч. частичная предоплата)
-	Cost    float64 // Объявленная стоимость товара (за единицу)
-	Weight  int32   // Вес (граммы, за единицу)
-	Amount  int32   // Количество единиц товара
+	Name    string  `json:"name,omitempty"`     // Наименование товара
+	WareKey string  `json:"ware_key,omitempty"` // Артикул товара
+	Payment float64 `json:"payment,omitempty"`  // Оплата (за единицу товара, в т.ч. частичная предоплата)
+	Cost    float64 `json:"cost,omitempty"`     // Объявленная стоимость товара (за единицу)
+	Weight  int32   `json:"weight,omitempty"`   // Вес (граммы, за единицу)
+	Amount  int32   `json:"amount,omitempty"`   // Количество единиц товара
 }
 
 // OrderResponse - ответ при создании заказа
 type OrderResponse struct {
-	UUID       string        // Идентификатор заказа в CDEK
-	Number     *string       // Номер заказа CDEK (может быть null до обработки)
-	TariffCode int           // Код тарифа
-	Statuses   []StatusEvent // История статусов
-	CreatedAt  string        // Дата и время создания (ISO 8601)
+	UUID       string        `json:"uuid,omitempty"`        // Идентификатор заказа в CDEK
+	Number     *string       `json:"number,omitempty"`      // Номер заказа CDEK (может быть null до обработки)
+	TariffCode int           `json:"tariff_code,omitempty"` // Код тарифа
+	Statuses   []StatusEvent `json:"statuses,omitempty"`    // История статусов
+	CreatedAt  string        `json:"created_at,omitempty"`  // Дата и время создания (ISO 8601)
 }
 
 // StatusEvent - событие изменения статуса
 type StatusEvent struct {
-	Code     string  // Код статуса
-	Name     string  // Название статуса
-	DateTime string  // Дата и время статуса (ISO 8601)
-	City     *string // Город, в котором произошло событие
+	Code     string  `json:"code,omitempty"`      // Код статуса
+	Name     string  `json:"name,omitempty"`      // Название статуса
+	DateTime string  `json:"date_time,omitempty"` // Дата и время статуса (ISO 8601)
+	City     *string `json:"city,omitempty"`      // Город, в котором произошло событие
 }
 
 // UpdateOrderRequest - запрос на обновление заказа
@@ -193,21 +193,21 @@ type UpdateOrderRequest struct {
 
 // OrderInfo - полная информация о заказе
 type OrderInfo struct {
-	UUID              string         // Идентификатор заказа в CDEK
-	Number            *string        // Номер заказа CDEK
-	Type              string         // Тип заказа
-	TariffCode        int            // Код тарифа
-	Sender            Recipient      // Отправитель (может быть компания с ИНН)
-	Recipient         Recipient      // Получатель (может быть компания с ИНН)
-	Seller            *Seller        // Продавец (третье лицо, для интернет-магазинов)
-	FromLocation      Location       // Адрес отправления
-	ToLocation        Location       // Адрес доставки
-	Packages          []OrderPackage // Список мест
-	Statuses          []StatusEvent  // История статусов
-	CreatedAt         string         // Дата создания
-	DeliveryCost      *float64       // Стоимость доставки
-	EstimatedDelivery *string        // Планируемая дата доставки
-	ActualDelivery    *string        // Фактическая дата доставки
+	UUID              string         `json:"uuid,omitempty"`               // Идентификатор заказа в CDEK
+	Number            *string        `json:"number,omitempty"`             // Номер заказа CDEK
+	Type              string         `json:"type,omitempty"`               // Тип заказа
+	TariffCode        int            `json:"tariff_code,omitempty"`        // Код тарифа
+	Sender            Recipient      `json:"sender"`                       // Отправитель (может быть компания с ИНН)
+	Recipient         Recipient      `json:"recipient"`                    // Получатель (может быть компания с ИНН)
+	Seller            *Seller        `json:"seller,omitempty"`             // Продавец (третье лицо, для интернет-магазинов)
+	FromLocation      Location       `json:"from_location"`                // Адрес отправления
+	ToLocation        Location       `json:"to_location"`                  // Адрес доставки
+	Packages          []OrderPackage `json:"packages,omitempty"`           // Список мест
+	Statuses          []StatusEvent  `json:"statuses,omitempty"`           // История статусов
+	CreatedAt         string         `json:"created_at,omitempty"`         // Дата создания
+	DeliveryCost      *float64       `json:"delivery_cost,omitempty"`      // Стоимость доставки
+	EstimatedDelivery *string        `json:"estimated_delivery,omitempty"` // Планируемая дата доставки
+	ActualDelivery    *string        `json:"actual_delivery,omitempty"`    // Фактическая дата доставки
 }
 
 // ========================
@@ -216,12 +216,12 @@ type OrderInfo struct {
 
 // TrackingInfo - информация об отслеживании заказа
 type TrackingInfo struct {
-	UUID              string        // Идентификатор заказа в CDEK
-	Number            *string       // Номер заказа CDEK
-	CurrentStatus     StatusEvent   // Текущий статус
-	StatusHistory     []StatusEvent // История статусов
-	EstimatedDelivery *string       // Планируемая дата доставки (ISO 8601)
-	ActualDelivery    *string       // Фактическая дата доставки (ISO 8601)
+	UUID              string        `json:"uuid,omitempty"`               // Идентификатор заказа в CDEK
+	Number            *string       `json:"number,omitempty"`             // Номер заказа CDEK
+	CurrentStatus     StatusEvent   `json:"current_status"`               // Текущий статус
+	StatusHistory     []StatusEvent `json:"status_history,omitempty"`     // История статусов
+	EstimatedDelivery *string       `json:"estimated_delivery,omitempty"` // Планируемая дата доставки (ISO 8601)
+	ActualDelivery    *string       `json:"actual_delivery,omitempty"`    // Фактическая дата доставки (ISO 8601)
 }
 
 // ========================
@@ -258,26 +258,26 @@ type DeliveryPointsRequest struct {
 
 // DeliveryPoint - пункт выдачи заказов
 type DeliveryPoint struct {
-	Code        string        // Код ПВЗ
-	Name        string        // Название ПВЗ
-	Type        string        // Тип: "PVZ", "POSTAMAT"
-	Location    PointLocation // Адрес расположения
-	WorkTime    string        // Режим работы
-	Phones      []Phone       // Телефоны
-	Email       *string       // Email
-	Note        *string       // Примечание
-	OfficeImage *string       // URL изображения офиса
+	Code        string        `json:"code,omitempty"`         // Код ПВЗ
+	Name        string        `json:"name,omitempty"`         // Название ПВЗ
+	Type        string        `json:"type,omitempty"`         // Тип: "PVZ", "POSTAMAT"
+	Location    PointLocation `json:"location"`               // Адрес расположения
+	WorkTime    string        `json:"work_time,omitempty"`    // Режим работы
+	Phones      []Phone       `json:"phones,omitempty"`       // Телефоны
+	Email       *string       `json:"email,omitempty"`        // Email
+	Note        *string       `json:"note,omitempty"`         // Примечание
+	OfficeImage *string       `json:"office_image,omitempty"` // URL изображения офиса
 }
 
 // PointLocation - местоположение пункта выдачи
 type PointLocation struct {
-	Country    string  // Страна
-	Region     string  // Регион
-	City       string  // Город
-	Address    string  // Адрес
-	PostalCode string  // Почтовый индекс
-	Latitude   float64 // Широта
-	Longitude  float64 // Долгота
+	Country    string  `json:"country,omitempty"`     // Страна
+	Region     string  `json:"region,omitempty"`      // Регион
+	City       string  `json:"city,omitempty"`        // Город
+	Address    string  `json:"address,omitempty"`     // Адрес
+	PostalCode string  `json:"postal_code,omitempty"` // Почтовый индекс
+	Latitude   float64 `json:"latitude,omitempty"`    // Широта
+	Longitude  float64 `json:"longitude,omitempty"`   // Долгота
 }
 
 // ========================
@@ -300,15 +300,15 @@ type PrintWaybillRequest struct {
 
 // PrintOrder - заказ для печати
 type PrintOrder struct {
-	OrderUUID string // UUID заказа
+	OrderUUID string `json:"order_uuid,omitempty"` // UUID заказа
 }
 
 // PrintResponse - ответ на запрос печати
 type PrintResponse struct {
-	UUID      string // UUID задания на печать
-	URL       string // URL для скачивания PDF (доступен после готовности)
-	Status    string // Статус: "ACCEPTED", "PROCESSING", "READY", "INVALID"
-	CreatedAt string // Дата создания задания
+	UUID      string `json:"uuid,omitempty"`       // UUID задания на печать
+	URL       string `json:"url,omitempty"`        // URL для скачивания PDF (доступен после готовности)
+	Status    string `json:"status,omitempty"`     // Статус: "ACCEPTED", "PROCESSING", "READY", "INVALID"
+	CreatedAt string `json:"created_at,omitempty"` // Дата создания задания
 }
 
 // ========================
@@ -317,30 +317,34 @@ type PrintResponse struct {
 
 // CitiesRequest - запрос на получение списка городов
 type CitiesRequest struct {
-	CountryCode *string // Код страны (ISO 3166-1 alpha-2)
-	RegionCode  *int    // Код региона
-	FiasGUID    *string // ФИАС код
-	PostalCode  *string // Почтовый индекс
-	Code        *int    // Код населенного пункта СДЭК
-	City        *string // Название города (поиск)
-	Size        *int    // Количество результатов (по умолчанию 1000)
-	Page        *int    // Номер страницы
+	CountryCode    *string  // Код страны (ISO 3166-1 alpha-2)
+	RegionCode     *int     // Код региона
+	FiasRegionGUID *string  // ФИАС код региона. Устаревшее поле - значения могут быть не актуальны
+	KladrCode      *string  // Код КЛАДР населенного пункта
+	FiasGUID       *string  // ФИАС код населенного пункта
+	PostalCode     *string  // Почтовый индекс
+	Code           *int     // Код населенного пункта СДЭК
+	City           *string  // Название города (поиск)
+	PaymentLimit   *float64 // Ограничение на сумму наложенного платежа. -1 - ограничения нет; 0 - наложенный платеж не принимается
+	Size           *int     // Количество результатов (по умолчанию 1000)
+	Page           *int     // Номер страницы
+	Lang           *string  // Язык локализации ответа
 }
 
 // City - город из справочника СДЭК
 type City struct {
-	Code         int      // Код населенного пункта СДЭК
-	City         string   // Название города
-	FiasGUID     *string  // Уникальный идентификатор ФИАС
-	Region       string   // Регион
-	RegionCode   int      // Код региона
-	Country      string   // Страна
-	CountryCode  string   // Код страны
-	Latitude     float64  // Широта
-	Longitude    float64  // Долгота
-	TimeZone     string   // Часовой пояс
-	PaymentLimit float64  // Ограничение оплаты наличными
-	PostalCodes  []string // Почтовые индексы
+	Code         int      `json:"code,omitempty"`          // Код населенного пункта СДЭК
+	City         string   `json:"city,omitempty"`          // Название города
+	FiasGUID     *string  `json:"fias_guid,omitempty"`     // Уникальный идентификатор ФИАС
+	Region       string   `json:"region,omitempty"`        // Регион
+	RegionCode   int      `json:"region_code,omitempty"`   // Код региона
+	Country      string   `json:"country,omitempty"`       // Страна
+	CountryCode  string   `json:"country_code,omitempty"`  // Код страны
+	Latitude     float64  `json:"latitude,omitempty"`      // Широта
+	Longitude    float64  `json:"longitude,omitempty"`     // Долгота
+	TimeZone     string   `json:"time_zone,omitempty"`     // Часовой пояс
+	PaymentLimit float64  `json:"payment_limit,omitempty"` // Ограничение оплаты наличными
+	PostalCodes  []string `json:"postal_codes,omitempty"`  // Почтовые индексы
 }
 
 // RegionsRequest - запрос на получение списка регионов
@@ -354,11 +358,11 @@ type RegionsRequest struct {
 
 // Region - регион из справочника СДЭК
 type Region struct {
-	Code        int     // Код региона
-	Region      string  // Название региона
-	Country     string  // Страна
-	CountryCode string  // Код страны
-	FiasGUID    *string // ФИАС код региона
+	Code        int     `json:"code,omitempty"`         // Код региона
+	Region      string  `json:"region,omitempty"`       // Название региона
+	Country     string  `json:"country,omitempty"`      // Страна
+	CountryCode string  `json:"country_code,omitempty"` // Код страны
+	FiasGUID    *string `json:"fias_guid,omitempty"`    // ФИАС код региона
 }
 
 // ========================
@@ -386,25 +390,25 @@ type IntakeOrder struct {
 
 // IntakeResponse - ответ при создании заявки на забор
 type IntakeResponse struct {
-	UUID       string // UUID заявки
-	Number     string // Номер заявки СДЭК
-	IntakeDate string // Дата забора
-	Status     string // Статус заявки
-	CreatedAt  string // Дата создания
+	UUID       string `json:"uuid,omitempty"`        // UUID заявки
+	Number     string `json:"number,omitempty"`      // Номер заявки СДЭК
+	IntakeDate string `json:"intake_date,omitempty"` // Дата забора
+	Status     string `json:"status,omitempty"`      // Статус заявки
+	CreatedAt  string `json:"created_at,omitempty"`  // Дата создания
 }
 
 // IntakeInfo - информация о заявке на забор
 type IntakeInfo struct {
-	UUID           string        // UUID заявки
-	Number         string        // Номер заявки
-	IntakeDate     string        // Дата забора
-	IntakeTimeFrom string        // Время начала
-	IntakeTimeTo   string        // Время окончания
-	Status         string        // Статус
-	Sender         Contact       // Отправитель
-	FromLocation   Location      // Адрес забора
-	Orders         []IntakeOrder // Заказы
-	CreatedAt      string        // Дата создания
+	UUID           string        `json:"uuid,omitempty"`             // UUID заявки
+	Number         string        `json:"number,omitempty"`           // Номер заявки
+	IntakeDate     string        `json:"intake_date,omitempty"`      // Дата забора
+	IntakeTimeFrom string        `json:"intake_time_from,omitempty"` // Время начала
+	IntakeTimeTo   string        `json:"intake_time_to,omitempty"`   // Время окончания
+	Status         string        `json:"status,omitempty"`           // Статус
+	Sender         Contact       `json:"sender"`                     // Отправитель
+	FromLocation   Location      `json:"from_location"`              // Адрес забора
+	Orders         []IntakeOrder `json:"orders,omitempty"`           // Заказы
+	CreatedAt      string        `json:"created_at,omitempty"`       // Дата создания
 }
 
 // ========================

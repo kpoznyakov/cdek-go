@@ -1084,14 +1084,32 @@ func (m *dtoMapper) fromCDEKCities(data []byte) ([]City, error) {
 		if cityName, ok := c["city"].(string); ok {
 			city.City = cityName
 		}
+		if fiasGUID, ok := c["fias_guid"].(string); ok {
+			city.FiasGUID = &fiasGUID
+		}
 		if region, ok := c["region"].(string); ok {
 			city.Region = region
+		}
+		if regionCode, ok := c["region_code"].(float64); ok {
+			city.RegionCode = int(regionCode)
 		}
 		if country, ok := c["country"].(string); ok {
 			city.Country = country
 		}
 		if countryCode, ok := c["country_code"].(string); ok {
 			city.CountryCode = countryCode
+		}
+		if latitude, ok := c["latitude"].(float64); ok {
+			city.Latitude = latitude
+		}
+		if longitude, ok := c["longitude"].(float64); ok {
+			city.Longitude = longitude
+		}
+		if timeZone, ok := c["time_zone"].(string); ok {
+			city.TimeZone = timeZone
+		}
+		if paymentLimit, ok := c["payment_limit"].(float64); ok {
+			city.PaymentLimit = paymentLimit
 		}
 		cities = append(cities, city)
 	}

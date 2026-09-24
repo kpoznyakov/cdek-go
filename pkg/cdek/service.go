@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sony/gobreaker/v2"
 )
 
@@ -992,6 +993,23 @@ func (s *Service) ListCities(ctx context.Context, req *CitiesRequest) ([]City, e
 			regionCode := int32(*req.RegionCode) //nolint:gosec
 			params.RegionCode = &regionCode
 		}
+		if req.FiasRegionGUID != nil {
+			fiasRegionGUID, err := uuid.Parse(*req.FiasRegionGUID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid fias_region_guid: %w", ErrInvalidRequest)
+			}
+			params.FiasRegionGuid = &fiasRegionGUID
+		}
+		if req.KladrCode != nil {
+			params.KladrCode = req.KladrCode
+		}
+		if req.FiasGUID != nil {
+			fiasGUID, err := uuid.Parse(*req.FiasGUID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid fias_guid: %w", ErrInvalidRequest)
+			}
+			params.FiasGuid = &fiasGUID
+		}
 		if req.PostalCode != nil {
 			params.PostalCode = req.PostalCode
 		}
@@ -1002,6 +1020,9 @@ func (s *Service) ListCities(ctx context.Context, req *CitiesRequest) ([]City, e
 		if req.City != nil {
 			params.City = req.City
 		}
+		if req.PaymentLimit != nil {
+			params.PaymentLimit = req.PaymentLimit
+		}
 		if req.Size != nil {
 			size := int32(*req.Size) //nolint:gosec
 			params.Size = &size
@@ -1009,6 +1030,9 @@ func (s *Service) ListCities(ctx context.Context, req *CitiesRequest) ([]City, e
 		if req.Page != nil {
 			page := int32(*req.Page) //nolint:gosec
 			params.Page = &page
+		}
+		if req.Lang != nil {
+			params.Lang = req.Lang
 		}
 
 		// Вызов API

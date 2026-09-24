@@ -8878,7 +8878,7 @@ func (r CheckPackagesRestrictionsResponse) ContentType() string {
 type CitiesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *V2LocationCityDto
+	JSON200      *[]V2LocationCityDto
 	JSON400      *SimplifiedResponseDto
 }
 
@@ -10963,7 +10963,7 @@ func ParseCitiesResponse(rsp *http.Response) (*CitiesResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest V2LocationCityDto
+		var dest []V2LocationCityDto
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
