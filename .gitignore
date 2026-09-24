@@ -67,3 +67,4 @@ go.work
 
 # Generated OpenAPI files (if not using committed version)
 # pkg/cdek/client.go  # Keep committed in version control
+/CLAUDE.md

@@ -258,26 +258,65 @@ type DeliveryPointsRequest struct {
 
 // DeliveryPoint - пункт выдачи заказов
 type DeliveryPoint struct {
-	Code        string        `json:"code,omitempty"`         // Код ПВЗ
-	Name        string        `json:"name,omitempty"`         // Название ПВЗ
-	Type        string        `json:"type,omitempty"`         // Тип: "PVZ", "POSTAMAT"
-	Location    PointLocation `json:"location"`               // Адрес расположения
-	WorkTime    string        `json:"work_time,omitempty"`    // Режим работы
-	Phones      []Phone       `json:"phones,omitempty"`       // Телефоны
-	Email       *string       `json:"email,omitempty"`        // Email
-	Note        *string       `json:"note,omitempty"`         // Примечание
-	OfficeImage *string       `json:"office_image,omitempty"` // URL изображения офиса
+	Code                  string              `json:"code,omitempty"`                     // Код ПВЗ
+	UUID                  *string             `json:"uuid,omitempty"`                     // Идентификатор офиса в ИС СДЭК
+	Name                  string              `json:"name,omitempty"`                     // Название ПВЗ
+	Type                  string              `json:"type,omitempty"`                     // Тип: "PVZ", "POSTAMAT"
+	Location              PointLocation       `json:"location"`                           // Адрес расположения
+	NearestStation        *string             `json:"nearest_station,omitempty"`          // Ближайшая станция/остановка транспорта
+	WorkTime              string              `json:"work_time,omitempty"`                // Режим работы
+	WorkTimeList          []WorkTimeEntry     `json:"work_time_list,omitempty"`           // График работы по дням недели
+	WorkTimeExceptionList []WorkTimeException `json:"work_time_exception_list,omitempty"` // Исключения в графике работы офиса
+	Phones                []Phone             `json:"phones,omitempty"`                   // Телефоны
+	Email                 *string             `json:"email,omitempty"`                    // Email
+	Note                  *string             `json:"note,omitempty"`                     // Примечание
+	OwnerCode             *string             `json:"owner_code,omitempty"`               // Принадлежность офиса компании (CDEK, PickPoint, ...)
+	TakeOnly              bool                `json:"take_only,omitempty"`                // Является ли офис только пунктом выдачи
+	IsHandout             bool                `json:"is_handout,omitempty"`               // Является пунктом выдачи
+	IsReception           bool                `json:"is_reception,omitempty"`             // Является пунктом приёма
+	IsDressingRoom        bool                `json:"is_dressing_room,omitempty"`         // Есть ли примерочная
+	IsLtl                 bool                `json:"is_ltl,omitempty"`                   // Работает ли офис с LTL (сборный груз)
+	HaveCashless          bool                `json:"have_cashless,omitempty"`            // Есть безналичный расчет
+	HaveCash              bool                `json:"have_cash,omitempty"`                // Есть приём наличных
+	HaveFastPaymentSystem bool                `json:"have_fast_payment_system,omitempty"` // Есть безналичный расчёт по СБП
+	AllowedCod            bool                `json:"allowed_cod,omitempty"`              // Разрешен наложенный платеж в ПВЗ
+	Site                  *string             `json:"site,omitempty"`                     // Ссылка на офис на сайте СДЭК
+	OfficeImage           *string             `json:"office_image,omitempty"`             // URL первого изображения офиса (для обратной совместимости, см. OfficeImageList)
+	OfficeImageList       []string            `json:"office_image_list,omitempty"`        // Все фото офиса (кроме фото проезда)
+	WeightMin             *float64            `json:"weight_min,omitempty"`               // Минимальный вес (кг), принимаемый в ПВЗ
+	WeightMax             *float64            `json:"weight_max,omitempty"`               // Максимальный вес (кг), принимаемый в ПВЗ
+	Status                string              `json:"status,omitempty"`                   // Статус офиса: "ACTIVE", "CLOSED"
+}
+
+// WorkTimeEntry - график работы офиса на конкретный день недели
+type WorkTimeEntry struct {
+	Day  int    `json:"day,omitempty"`  // Порядковый номер дня недели (1 = понедельник, 7 = воскресенье)
+	Time string `json:"time,omitempty"` // Период работы в этот день
+}
+
+// WorkTimeException - исключение в графике работы офиса на определенный период
+type WorkTimeException struct {
+	DateStart string `json:"date_start,omitempty"` // Дата начала исключения
+	DateEnd   string `json:"date_end,omitempty"`   // Дата окончания исключения
+	TimeStart string `json:"time_start,omitempty"` // Время начала работы в указанную дату
+	TimeEnd   string `json:"time_end,omitempty"`   // Время окончания работы в указанную дату
+	IsWorking bool   `json:"is_working,omitempty"` // Признак рабочего/нерабочего дня
 }
 
 // PointLocation - местоположение пункта выдачи
 type PointLocation struct {
-	Country    string  `json:"country,omitempty"`     // Страна
-	Region     string  `json:"region,omitempty"`      // Регион
-	City       string  `json:"city,omitempty"`        // Город
-	Address    string  `json:"address,omitempty"`     // Адрес
-	PostalCode string  `json:"postal_code,omitempty"` // Почтовый индекс
-	Latitude   float64 `json:"latitude,omitempty"`    // Широта
-	Longitude  float64 `json:"longitude,omitempty"`   // Долгота
+	CountryCode *string `json:"country_code,omitempty"` // Код страны в формате ISO_3166-1_alpha-2
+	Region      string  `json:"region,omitempty"`       // Регион
+	RegionCode  *int32  `json:"region_code,omitempty"`  // Код региона СДЭК
+	City        string  `json:"city,omitempty"`         // Город
+	CityCode    *int32  `json:"city_code,omitempty"`    // Код населенного пункта СДЭК
+	CityUUID    *string `json:"city_uuid,omitempty"`    // Идентификатор города в ИС СДЭК
+	FiasGUID    *string `json:"fias_guid,omitempty"`    // Идентификатор ФИАС населенного пункта
+	Address     string  `json:"address,omitempty"`      // Адрес
+	AddressFull *string `json:"address_full,omitempty"` // Полный адрес с указанием страны, региона, города и т.д.
+	PostalCode  string  `json:"postal_code,omitempty"`  // Почтовый индекс
+	Latitude    float64 `json:"latitude,omitempty"`     // Широта
+	Longitude   float64 `json:"longitude,omitempty"`    // Долгота
 }
 
 // ========================
