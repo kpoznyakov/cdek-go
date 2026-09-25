@@ -274,6 +274,24 @@ type DeliveryPointsRequest struct {
 	Page                  *int     // Номер страницы выборки результата
 }
 
+// DeliveryPointsByPolygonRequest - запрос на получение списка ПВЗ внутри
+// прямоугольника координат (GET /v2/deliverypoints/byPolygons)
+type DeliveryPointsByPolygonRequest struct {
+	LatitudeRightTop    float64 // Широта верхней правой точки прямоугольника
+	LongitudeRightTop   float64 // Долгота верхней правой точки прямоугольника
+	LatitudeLeftBottom  float64 // Широта нижней левой точки прямоугольника
+	LongitudeLeftBottom float64 // Долгота нижней левой точки прямоугольника
+	Type                string  // Тип офиса: "PVZ", "POSTAMAT", "ALL"
+	CityUUID            *string // Идентификатор города в ИС СДЭК
+	HaveCashless        *bool   // Наличие терминала оплаты
+	HaveCash            *bool   // Есть прием наличных
+	AllowedCod          *bool   // Разрешен наложенный платеж
+	IsDressingRoom      *bool   // Наличие примерочной
+	WeightMax           *float64
+	WeightMin           *float64
+	Lang                *string // Локализация офиса
+}
+
 // DeliveryPoint - пункт выдачи заказов
 type DeliveryPoint struct {
 	Code                  string              `json:"code,omitempty"`                     // Код ПВЗ

@@ -493,6 +493,82 @@ func (s *Service) ListDeliveryPoints(ctx context.Context, req *DeliveryPointsReq
 	return points, nil
 }
 
+// ListDeliveryPointsByPolygon возвращает список ПВЗ внутри прямоугольника
+// координат (GET /v2/deliverypoints/byPolygons).
+func (s *Service) ListDeliveryPointsByPolygon(ctx context.Context, req *DeliveryPointsByPolygonRequest) ([]DeliveryPoint, error) {
+	s.logger.Info("listing delivery points by polygon",
+		"lat_rt", req.LatitudeRightTop, "lon_rt", req.LongitudeRightTop,
+		"lat_lb", req.LatitudeLeftBottom, "lon_lb", req.LongitudeLeftBottom)
+
+	result, err := s.breaker.Execute(func() (interface{}, error) {
+		path := "/v2/deliverypoints/byPolygons"
+		query := url.Values{}
+
+		query.Set("latitude_right_top", strconv.FormatFloat(req.LatitudeRightTop, 'f', -1, 64))
+		query.Set("longitude_right_top", strconv.FormatFloat(req.LongitudeRightTop, 'f', -1, 64))
+		query.Set("latitude_left_bottom", strconv.FormatFloat(req.LatitudeLeftBottom, 'f', -1, 64))
+		query.Set("longitude_left_bottom", strconv.FormatFloat(req.LongitudeLeftBottom, 'f', -1, 64))
+
+		if req.Type != "" {
+			query.Set("type", req.Type)
+		}
+		if req.CityUUID != nil {
+			query.Set("city_uuid", *req.CityUUID)
+		}
+		if req.HaveCashless != nil {
+			query.Set("have_cashless", strconv.FormatBool(*req.HaveCashless))
+		}
+		if req.HaveCash != nil {
+			query.Set("have_cash", strconv.FormatBool(*req.HaveCash))
+		}
+		if req.AllowedCod != nil {
+			query.Set("allowed_cod", strconv.FormatBool(*req.AllowedCod))
+		}
+		if req.IsDressingRoom != nil {
+			query.Set("is_dressing_room", strconv.FormatBool(*req.IsDressingRoom))
+		}
+		if req.WeightMax != nil {
+			query.Set("weight_max", strconv.FormatFloat(*req.WeightMax, 'f', -1, 64))
+		}
+		if req.WeightMin != nil {
+			query.Set("weight_min", strconv.FormatFloat(*req.WeightMin, 'f', -1, 64))
+		}
+		if req.Lang != nil {
+			query.Set("lang", *req.Lang)
+		}
+
+		path += "?" + query.Encode()
+
+		httpResp, err := s.client.Do(ctx, http.MethodGet, path, nil)
+		if err != nil {
+			return nil, fmt.Errorf("api call: %w", err)
+		}
+		defer func() { _ = httpResp.Body.Close() }()
+
+		if httpResp.StatusCode >= 400 {
+			return nil, wrapHTTPError(httpResp)
+		}
+
+		bodyBytes, err := io.ReadAll(httpResp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("read response: %w", err)
+		}
+
+		// Ответ имеет ту же форму (массив OfficeDto), что и GetDeliverypoints
+		return s.mapper.fromCDEKDeliveryPoints(bodyBytes)
+	})
+
+	if err != nil {
+		s.logger.Error("list delivery points by polygon failed", "err", err)
+		return nil, err
+	}
+
+	points := result.([]DeliveryPoint)
+	s.logger.Info("list delivery points by polygon success", "points_count", len(points))
+
+	return points, nil
+}
+
 // PrintBarcode создает задание на печать этикеток (штрихкодов)
 func (s *Service) PrintBarcode(ctx context.Context, req *PrintBarcodeRequest) (*PrintResponse, error) {
 	s.logger.Info("creating barcode print job", "orders_count", len(req.Orders))
