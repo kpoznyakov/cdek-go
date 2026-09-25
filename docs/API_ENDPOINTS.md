@@ -192,24 +192,12 @@ order, err := service.CreateOrder(ctx, &cdek.OrderRequest{
 **Параметры:**
 - `uuid` (string) - UUID заказа в CDEK
 
-**Ответ:**
+**Ответ:** `*cdek.ResponseDtoOrderResponseDto` — сгенерированный из OpenAPI-спеки тип, возвращается 1:1 как его отдаёт CDEK API (без промежуточного маппинга):
 ```go
-type OrderInfo struct {
-    UUID              string
-    Number            *string
-    Type              string
-    TariffCode        int
-    Sender            Recipient
-    Recipient         Recipient
-    Seller            *Seller
-    FromLocation      Location
-    ToLocation        Location
-    Packages          []OrderPackage
-    Statuses          []StatusEvent
-    CreatedAt         string
-    DeliveryCost      *float64
-    EstimatedDelivery *string
-    ActualDelivery    *string
+type ResponseDtoOrderResponseDto struct {
+    Entity         *OrderResponseDto // Информация о заказе (uuid, type, tariff_code, sender, recipient, packages, statuses, ...)
+    Requests       interface{}       // Информация о запросах, относящихся к сущности
+    RelatedEntities interface{}      // Связанные сущности
 }
 ```
 

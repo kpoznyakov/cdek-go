@@ -578,23 +578,24 @@ func TestSimple_ServiceGetOrder(t *testing.T) {
 	order := createTestOrder(t, service, ctx)
 
 	// Получаем полную информацию
-	orderInfo, err := service.GetOrder(ctx, order.UUID)
+	orderResp, err := service.GetOrder(ctx, order.UUID)
 	if err != nil {
 		t.Fatalf("GetOrder failed: %v", err)
 	}
 
-	if orderInfo.UUID == "" {
+	if orderResp.Entity == nil {
+		t.Fatal("Expected non-nil order entity")
+	}
+
+	if orderResp.Entity.Uuid == nil || orderResp.Entity.Uuid == "" {
 		t.Error("Expected non-empty order UUID")
 	}
 
-	t.Logf("✅ Service.GetOrder: получена полная информация о заказе")
-	t.Logf("  UUID: %s", orderInfo.UUID)
-	if orderInfo.Number != nil {
-		t.Logf("  CDEK Number: %s", *orderInfo.Number)
-	}
-	t.Logf("  Type: %s", orderInfo.Type)
-	t.Logf("  Tariff Code: %d", orderInfo.TariffCode)
-	t.Logf("  Statuses: %d events", len(orderInfo.Statuses))
+	t.Logf("✅ Service.GetOrder: получена полная информация о заказе (1:1 как в CDEK API)")
+	t.Logf("  UUID: %v", orderResp.Entity.Uuid)
+	t.Logf("  CDEK Number: %v", orderResp.Entity.CdekNumber)
+	t.Logf("  Type: %v", orderResp.Entity.Type)
+	t.Logf("  Tariff Code: %v", orderResp.Entity.TariffCode)
 }
 
 // TestSimple_ServiceUpdateOrder тестирует обновление заказа

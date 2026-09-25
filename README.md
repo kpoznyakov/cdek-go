@@ -203,12 +203,15 @@ order, err := service.CreateOrder(ctx, &cdek.OrderRequest{
 
 #### 3. GetOrder - Получение информации о заказе
 
+Возвращает ответ CDEK API 1:1 (сгенерированный из OpenAPI-спеки тип `*cdek.ResponseDtoOrderResponseDto`), без промежуточного маппинга:
+
 ```go
-orderInfo, err := service.GetOrder(ctx, orderUUID)
-fmt.Printf("Заказ %s, тариф %d\n", orderInfo.UUID, orderInfo.TariffCode)
-fmt.Printf("Получатель: %s (%s)\n", orderInfo.Recipient.Name, *orderInfo.Recipient.Company)
-if orderInfo.Recipient.TIN != nil {
-    fmt.Printf("ИНН: %s\n", *orderInfo.Recipient.TIN)
+orderResp, err := service.GetOrder(ctx, orderUUID)
+entity := orderResp.Entity
+fmt.Printf("Заказ %v, тариф %v\n", entity.Uuid, entity.TariffCode)
+fmt.Printf("Получатель: %v (%v)\n", entity.Recipient.Name, entity.Recipient.Company)
+if entity.Recipient.Tin != nil {
+    fmt.Printf("ИНН: %v\n", entity.Recipient.Tin)
 }
 ```
 

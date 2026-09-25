@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -30,8 +31,8 @@ func DefaultServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
 		BreakerName:        "cdek-api",
 		BreakerMaxRequests: 5,
-		BreakerInterval:    30 * time.Second,
-		BreakerTimeout:     60 * time.Second,
+		BreakerInterval:    3 * time.Second,
+		BreakerTimeout:     6 * time.Second,
 		Logger:             nil, // no-op logger по умолчанию
 	}
 }
@@ -65,6 +66,19 @@ func NewService(client *AuthenticatedClient, config *ServiceConfig) *Service {
 			// Открываем circuit если >= 60% запросов падают и минимум 3 запроса
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 			return counts.Requests >= 3 && failureRatio >= 0.6
+		},
+		// Ошибки на стороне вызывающего кода (невалидный запрос, 401/403, 404)
+		// не свидетельствуют о нестабильности CDEK API и не должны размыкать
+		// circuit — иначе поток некорректных запросов ломает работу сервиса
+		// для всех остальных методов, использующих тот же breaker.
+		IsSuccessful: func(err error) bool {
+			if err == nil {
+				return true
+			}
+			if errors.Is(err, ErrInvalidRequest) || errors.Is(err, ErrNotFound) || errors.Is(err, ErrUnauthorized) {
+				return true
+			}
+			return false
 		},
 	})
 
@@ -661,8 +675,10 @@ func (s *Service) PrintWaybill(ctx context.Context, req *PrintWaybillRequest) (*
 	return printResp, nil
 }
 
-// GetOrder получает полную информацию о заказе (включая все детали)
-func (s *Service) GetOrder(ctx context.Context, orderUUID string) (*OrderInfo, error) {
+// GetOrder получает полную информацию о заказе (включая все детали).
+// Ответ возвращается 1:1 как его отдаёт CDEK API (сгенерированный из OpenAPI-спеки тип),
+// без промежуточного маппинга в упрощённую структуру.
+func (s *Service) GetOrder(ctx context.Context, orderUUID string) (*ResponseDtoOrderResponseDto, error) {
 	s.logger.Info("getting order info", "uuid", orderUUID)
 
 	// Выполнение через Circuit Breaker
@@ -686,20 +702,20 @@ func (s *Service) GetOrder(ctx context.Context, orderUUID string) (*OrderInfo, e
 			return nil, fmt.Errorf("api call: %w", err)
 		}
 
-		// Чтение ответа
-		bodyBytes := resp.Body
-
 		// Проверка HTTP статуса
 		if resp.StatusCode() >= 400 {
 			httpResp := &http.Response{
 				StatusCode: resp.StatusCode(),
-				Body:       io.NopCloser(bytes.NewReader(bodyBytes)),
+				Body:       io.NopCloser(bytes.NewReader(resp.Body)),
 			}
 			return nil, wrapHTTPError(httpResp)
 		}
 
-		// Преобразование CDEK Response → OrderInfo
-		return s.mapper.fromCDEKOrderToInfo(bodyBytes)
+		if resp.JSON200 == nil {
+			return nil, fmt.Errorf("unexpected response: status=%d body=%s", resp.StatusCode(), resp.Body)
+		}
+
+		return resp.JSON200, nil
 	})
 
 	if err != nil {
@@ -707,15 +723,18 @@ func (s *Service) GetOrder(ctx context.Context, orderUUID string) (*OrderInfo, e
 		return nil, err
 	}
 
-	orderInfo := result.(*OrderInfo)
-	s.logger.Info("get order success", "uuid", orderInfo.UUID)
+	orderResp := result.(*ResponseDtoOrderResponseDto)
+	if orderResp.Entity != nil {
+		s.logger.Info("get order success", "uuid", orderResp.Entity.Uuid)
+	}
 
-	return orderInfo, nil
+	return orderResp, nil
 }
 
 // GetOrderByCDEKNumber retrieves full order information by CDEK tracking number (e.g. "10278482691").
 // Uses Do() directly to avoid a nil-interface panic in the generated client when only one query param is set.
-func (s *Service) GetOrderByCDEKNumber(ctx context.Context, cdekNumber string) (*OrderInfo, error) {
+// Response is returned 1:1 as CDEK API sends it (OpenAPI-generated type), no mapping to a simplified struct.
+func (s *Service) GetOrderByCDEKNumber(ctx context.Context, cdekNumber string) (*ResponseDtoOrderResponseDto, error) {
 	s.logger.Info("getting order info by cdek number", "cdek_number", cdekNumber)
 
 	result, err := s.breaker.Execute(func() (interface{}, error) {
@@ -738,16 +757,23 @@ func (s *Service) GetOrderByCDEKNumber(ctx context.Context, cdekNumber string) (
 			})
 		}
 
-		return s.mapper.fromCDEKOrderToInfo(bodyBytes)
+		var orderResp ResponseDtoOrderResponseDto
+		if err := json.Unmarshal(bodyBytes, &orderResp); err != nil {
+			return nil, fmt.Errorf("unmarshal order response: %w", err)
+		}
+
+		return &orderResp, nil
 	})
 	if err != nil {
 		s.logger.Error("get order by cdek number failed", "err", err, "cdek_number", cdekNumber)
 		return nil, err
 	}
 
-	orderInfo := result.(*OrderInfo)
-	s.logger.Info("get order by cdek number success", "cdek_number", cdekNumber, "uuid", orderInfo.UUID)
-	return orderInfo, nil
+	orderResp := result.(*ResponseDtoOrderResponseDto)
+	if orderResp.Entity != nil {
+		s.logger.Info("get order by cdek number success", "cdek_number", cdekNumber, "uuid", orderResp.Entity.Uuid)
+	}
+	return orderResp, nil
 }
 
 // UpdateOrder обновляет существующий заказ

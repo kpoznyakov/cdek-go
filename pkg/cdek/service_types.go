@@ -193,8 +193,8 @@ type OrderPackage struct {
 type Item struct {
 	Name    string  `json:"name,omitempty"`     // Наименование товара
 	WareKey string  `json:"ware_key,omitempty"` // Артикул товара
-	Payment float64 `json:"payment,omitempty"`  // Оплата (за единицу товара, в т.ч. частичная предоплата)
-	Cost    float64 `json:"cost,omitempty"`     // Объявленная стоимость товара (за единицу)
+	Payment float64 `json:"payment"`            // Оплата (за единицу товара, в т.ч. частичная предоплата); 0 - валидное значение (бесплатный товар/подарок)
+	Cost    float64 `json:"cost"`               // Объявленная стоимость товара (за единицу); 0 - валидное значение
 	Weight  int32   `json:"weight,omitempty"`   // Вес (граммы, за единицу)
 	Amount  int32   `json:"amount,omitempty"`   // Количество единиц товара
 }
@@ -226,25 +226,6 @@ type UpdateOrderRequest struct {
 	FromLocation *Location      // Новый адрес отправления
 	Comment      *string        // Новый комментарий
 	Packages     []OrderPackage // Обновленный список мест (если нужно)
-}
-
-// OrderInfo - полная информация о заказе
-type OrderInfo struct {
-	UUID              string         `json:"uuid,omitempty"`               // Идентификатор заказа в CDEK
-	Number            *string        `json:"number,omitempty"`             // Номер заказа CDEK
-	Type              string         `json:"type,omitempty"`               // Тип заказа
-	TariffCode        int            `json:"tariff_code,omitempty"`        // Код тарифа
-	Sender            Recipient      `json:"sender"`                       // Отправитель (может быть компания с ИНН)
-	Recipient         Recipient      `json:"recipient"`                    // Получатель (может быть компания с ИНН)
-	Seller            *Seller        `json:"seller,omitempty"`             // Продавец (третье лицо, для интернет-магазинов)
-	FromLocation      Location       `json:"from_location"`                // Адрес отправления
-	ToLocation        Location       `json:"to_location"`                  // Адрес доставки
-	Packages          []OrderPackage `json:"packages,omitempty"`           // Список мест
-	Statuses          []StatusEvent  `json:"statuses,omitempty"`           // История статусов
-	CreatedAt         string         `json:"created_at,omitempty"`         // Дата создания
-	DeliveryCost      *float64       `json:"delivery_cost,omitempty"`      // Стоимость доставки
-	EstimatedDelivery *string        `json:"estimated_delivery,omitempty"` // Планируемая дата доставки
-	ActualDelivery    *string        `json:"actual_delivery,omitempty"`    // Фактическая дата доставки
 }
 
 // ========================
