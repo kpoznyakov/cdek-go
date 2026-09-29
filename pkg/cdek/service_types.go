@@ -514,14 +514,14 @@ type WebhookRequest struct {
 
 // WebhookResponse - ответ при создании webhook
 type WebhookResponse struct {
-	UUID string // UUID созданного webhook
+	UUID string `json:"uuid"` // UUID созданного webhook
 }
 
 // Webhook - информация о webhook
 type Webhook struct {
-	UUID string // UUID webhook
-	URL  string // URL для уведомлений
-	Type string // Тип события
+	UUID string `json:"uuid"` // UUID webhook
+	URL  string `json:"url"`  // URL для уведомлений
+	Type string `json:"type"` // Тип события
 }
 
 // WebhookEvent - конверт входящего уведомления, которое CDEK присылает POST-запросом
