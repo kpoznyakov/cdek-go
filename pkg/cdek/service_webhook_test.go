@@ -1,6 +1,7 @@
 package cdek
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -181,6 +182,45 @@ func TestDTOMapper_fromCDEKWebhooks(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, webhooks)
 	})
+}
+
+func TestWebhookEvent_OrderStatus_Unmarshal(t *testing.T) {
+	// Пример реального тела запроса, которое CDEK присылает на callback URL
+	jsonData := []byte(`{
+		"type": "ORDER_STATUS",
+		"uuid": "72753031-90bc-4f9e-8bc0-19f5c0f34e79",
+		"date_time": "2026-09-29T10:00:00+0300",
+		"attributes": {
+			"is_return": false,
+			"is_reverse": false,
+			"cdek_number": "1104114712",
+			"number": "shop-order-42",
+			"code": 3,
+			"status_code": "DELIVERED",
+			"status_date_time": "2026-09-29T09:55:00+0300",
+			"city_name": "Москва",
+			"city_code": 44
+		}
+	}`)
+
+	var event WebhookEvent
+	err := json.Unmarshal(jsonData, &event)
+	assert.NoError(t, err)
+	assert.Equal(t, WebhookTypeOrderStatus, event.Type)
+	assert.Equal(t, "72753031-90bc-4f9e-8bc0-19f5c0f34e79", event.UUID)
+	assert.Equal(t, "2026-09-29T10:00:00+0300", event.DateTime)
+	assert.NotEmpty(t, event.Attributes)
+
+	var attrs OrderStatusAttributes
+	err = json.Unmarshal(event.Attributes, &attrs)
+	assert.NoError(t, err)
+	assert.Equal(t, "1104114712", attrs.CdekNumber)
+	assert.Equal(t, "shop-order-42", attrs.Number)
+	assert.Equal(t, "DELIVERED", attrs.StatusCode)
+	assert.Equal(t, "Москва", attrs.CityName)
+	assert.Equal(t, 44, attrs.CityCode)
+	assert.False(t, attrs.IsReturn)
+	assert.False(t, attrs.IsReverse)
 }
 
 func TestService_Webhook_Methods_Exist(t *testing.T) {

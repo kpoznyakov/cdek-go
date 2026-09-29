@@ -1,5 +1,7 @@
 package cdek
 
+import "encoding/json"
+
 // service_types.go - Удобные типы для высокоуровневого Service API (PascalCase по регламенту)
 //
 // Эти типы являются обертками над автогенерированными CDEK типами,
@@ -520,4 +522,28 @@ type Webhook struct {
 	UUID string // UUID webhook
 	URL  string // URL для уведомлений
 	Type string // Тип события
+}
+
+// WebhookEvent - конверт входящего уведомления, которое CDEK присылает POST-запросом
+// на зарегистрированный callback URL. Attributes зависит от Type (см. WebhookType* constants);
+// для ORDER_STATUS используйте OrderStatusAttributes, остальные типы разбирайте вручную.
+type WebhookEvent struct {
+	Type       string          `json:"type"`       // Тип события: ORDER_STATUS, PRINT_FORM, etc.
+	UUID       string          `json:"uuid"`       // UUID заказа/сущности, к которой относится событие
+	DateTime   string          `json:"date_time"`  // Дата и время события
+	Attributes json.RawMessage `json:"attributes"` // Атрибуты события, формат зависит от Type
+}
+
+// OrderStatusAttributes - атрибуты события ORDER_STATUS (изменение статуса заказа)
+type OrderStatusAttributes struct {
+	IsReturn         bool   `json:"is_return"`                    // Признак возврата
+	IsReverse        bool   `json:"is_reverse"`                   // Признак реверсивного заказа
+	CdekNumber       string `json:"cdek_number"`                  // Номер заказа в системе CDEK
+	Number           string `json:"number,omitempty"`             // Номер заказа в системе клиента
+	Code             int    `json:"code,omitempty"`               // Код статуса
+	StatusCode       string `json:"status_code"`                  // Код статуса заказа
+	StatusReasonCode string `json:"status_reason_code,omitempty"` // Код причины статуса
+	StatusDateTime   string `json:"status_date_time"`             // Дата и время статуса
+	CityName         string `json:"city_name,omitempty"`          // Город события
+	CityCode         int    `json:"city_code,omitempty"`          // Код города события
 }
